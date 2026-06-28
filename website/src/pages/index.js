@@ -98,12 +98,12 @@ export default function Home() {
       <HomepageHeader />
       <main>
         {/* Version badges - tight under hero */}
-        <section className="container" style={{textAlign: 'center', padding: '1rem 0 0', marginTop: '-1.5rem'}}>
-          <div className="version-badges">
+        <section className="container" style={{textAlign: 'center', padding: '0.5rem 0 0', marginTop: '-1.5rem'}}>
+          <div className="version-badges" style={{marginBottom: '0.25rem'}}>
             {versions.map((v, i) => (
               <span key={i} className="version-badge">
                 <span style={{
-                  width: 10, height: 10, borderRadius: '50%',
+                  width: 8, height: 8, borderRadius: '50%',
                   backgroundColor: v.color, display: 'inline-block'
                 }} />
                 {v.label}
@@ -113,7 +113,7 @@ export default function Home() {
         </section>
 
         {/* All content in one tab group */}
-        <section className="container" style={{padding: '1.5rem 0 3rem'}}>
+        <section className="container" style={{padding: '0.5rem 0 3rem'}}>
           <Tabs>
             <TabItem value="highlights" label="What You Will Learn" default>
               <div className="row" style={{marginTop: '1rem'}}>
