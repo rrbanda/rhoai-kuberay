@@ -19,6 +19,18 @@ if [ -z "$HEAD_POD" ]; then
 fi
 
 echo "Head pod: $HEAD_POD"
+echo "Waiting for GCS to be ready..."
+for i in $(seq 1 12); do
+  if oc exec "$HEAD_POD" -n "$NAMESPACE" -c ray-head -- ray health-check --address 127.0.0.1:6379 &>/dev/null; then
+    echo "GCS is ready."
+    break
+  fi
+  if [ "$i" -eq 12 ]; then
+    echo "ERROR: GCS not ready after 60s"
+    exit 1
+  fi
+  sleep 5
+done
 echo ""
 
 oc exec "$HEAD_POD" -n "$NAMESPACE" -c ray-head -- python3 -c "
