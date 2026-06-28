@@ -52,6 +52,36 @@ sequenceDiagram
     SDK->>NB: Connect via mTLS to head GCS
 ```
 
+## Authentication in RHOAI Workbenches
+
+The CodeFlare SDK needs Kubernetes credentials to create Ray clusters. How it gets them depends on where you run:
+
+| Context | How auth works |
+|---------|---------------|
+| **Inside an RHOAI Workbench** | Credentials are auto-detected from the workbench's service account. No explicit auth code needed in most cases. |
+| **Local machine / outside cluster** | Use token-based auth with `oc whoami -t` to get a bearer token, then pass it to the SDK. |
+
+:::warning Known issue: RHOAIENG-46748
+The workbench service account may lack the RBAC permissions needed for Ray operations. If you get a **403 Forbidden** error when creating clusters, ask your admin to grant Ray RBAC to your service account, or use token-based auth instead:
+
+```python
+from kube_authkit import AuthConfig, get_k8s_client
+from codeflare_sdk import set_api_client
+
+auth_config = AuthConfig(
+    method="openshift",
+    token="<your-token-from-oc-whoami-t>",
+    server="<your-api-server-url>",
+)
+client = get_k8s_client(config=auth_config)
+set_api_client(client)
+```
+:::
+
+:::info SDK auth migration
+The CodeFlare SDK is migrating from the older `TokenAuthentication` class to `kube-authkit` (`AuthConfig`, `set_api_client`). This workshop uses auto-detect for simplicity. See the [CodeFlare SDK authentication docs](https://project-codeflare.github.io/codeflare-sdk/) for the latest guidance.
+:::
+
 ## Setting Up a Workbench
 
 1. In the RHOAI Dashboard, navigate to **Data Science Projects**

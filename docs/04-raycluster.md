@@ -264,6 +264,19 @@ The Ray dashboard provides:
 - **Metrics** -- Grafana-style metrics charts for task throughput, object store usage, and node resources
 - **Logs** -- Centralized log viewer for all Ray processes across nodes
 
+### RHOAI Workload Metrics
+
+Beyond the Ray dashboard, RHOAI provides a **Distributed workload status** page in the OpenShift AI dashboard (under your Data Science Project). This shows:
+
+- Kueue admission status for all workloads in the project
+- Resource usage (CPU, memory, GPU) per workload
+- Workload history and lifecycle events
+- Queue utilization across ClusterQueues
+
+This is accessible without port-forwarding or CLI tools -- just navigate to your project in the RHOAI dashboard.
+
+> **Official reference:** [RHOAI 3.4 -- Monitoring distributed workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/monitoring-distributed-workloads_distributed-workloads)
+
 ## Deep Dive
 
 - [RHOAI 3.4 -- Running Ray-based distributed workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads)

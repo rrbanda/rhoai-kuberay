@@ -15,6 +15,36 @@ By the end of this module you will understand:
 - Common image, resource, and scheduling issues and their solutions
 - A systematic diagnostic approach for stuck RayClusters
 
+## Debugging with Kueue Workloads
+
+Every RayCluster and RayJob automatically creates a Kueue `Workload` CR. This is the **primary debugging tool** for admission issues -- its `status.conditions.message` tells you exactly why a workload is pending or rejected.
+
+```bash
+# List all Kueue workloads in a namespace
+oc get workloads -n ray-demo
+```
+
+Expected output:
+
+```
+NAME                           QUEUE     RESERVED IN   ADMITTED   AGE
+raycluster-demo-cluster-xxxxx  default   default       True       5m
+```
+
+If `ADMITTED` is empty or `False`, check why:
+
+```bash
+# Get detailed admission status
+oc get workload <name> -n ray-demo -o jsonpath='{.status.conditions}' | python3 -m json.tool
+```
+
+Common messages:
+- `"Insufficient cpu in flavor default-flavor"` -- ClusterQueue quota exhausted
+- `"LocalQueue default not found"` -- namespace missing the LocalQueue or `kueue.openshift.io/managed` label
+- `"Workload didn't fit"` -- requested resources exceed all available flavors
+
+> **Official reference:** [RHOAI 3.4 -- Troubleshooting distributed workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/managing_openshift_ai/managing-distributed-workloads_managing-rhoai#troubleshooting-distributed-workloads_managing-rhoai)
+
 ## Diagnostic Decision Tree
 
 When a RayCluster is not working, follow this flow:

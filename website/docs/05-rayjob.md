@@ -181,13 +181,21 @@ The child RayCluster cannot start. Common causes:
 
 ### Job shows no status (empty JOB STATUS and DEPLOYMENT STATUS)
 
-The RayJob is suspended by Kueue. Check:
+The RayJob is suspended by Kueue. Use the `Workload` CR to diagnose why:
 
 ```bash
+# Check if the job is suspended
 oc get rayjob <name> -n ray-demo -o jsonpath='{.spec.suspend}'
+
+# Check the Kueue Workload for admission status
+oc get workloads -n ray-demo
+
+# Get detailed reason for pending admission
+oc get workload <workload-name> -n ray-demo \
+  -o jsonpath='{.status.conditions[*].message}'
 ```
 
-If `true`, verify your `LocalQueue` and `ClusterQueue` are correctly configured and have available quota.
+Common causes: `LocalQueue` not found (missing namespace label), `ClusterQueue` quota exhausted, or `kueue.x-k8s.io/queue-name` label missing from the RayJob manifest.
 
 ### "shutdownAfterJobFinishes set to false is not allowed to be suspended"
 

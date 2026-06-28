@@ -105,6 +105,20 @@ The component stack:
 
 > **Official reference:** [RHOAI 3.4 -- Overview of distributed workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/overview-of-distributed-workloads_distributed-workloads)
 
+## Key Terms
+
+If you are new to Kubernetes or Ray, here are the terms used throughout this workshop:
+
+| Term | Definition |
+|------|-----------|
+| **mTLS** (Mutual TLS) | Both client and server verify each other's identity using TLS certificates. Ray uses mTLS so only authenticated pods can communicate within the cluster. RHOAI configures this automatically via cert-manager. |
+| **Kustomize** | A Kubernetes-native tool for customizing YAML manifests without templates. `oc apply -k <directory>` applies all resources defined in a `kustomization.yaml` file. |
+| **CRD / CR** | A Custom Resource Definition (CRD) extends the Kubernetes API with a new resource type. A Custom Resource (CR) is an instance of that type. Example: `RayCluster` is a CRD; `demo-cluster` is a CR. |
+| **ConfigMap / Secret** | Kubernetes objects for storing configuration data (ConfigMap) or sensitive data like passwords and certificates (Secret). Ray uses Secrets for TLS certificates and ConfigMaps for kube-rbac-proxy authorization rules. |
+| **Finalizer** | A Kubernetes mechanism that blocks resource deletion until cleanup logic runs. KubeRay adds a finalizer to RayClusters so authentication resources are cleaned up before the cluster is deleted. |
+| **Webhook** | A Kubernetes admission controller that intercepts API requests to validate or mutate resources. KubeRay uses a mutating webhook to inject security annotations and a validating webhook to check RayCluster specs. |
+| **Operator** | A Kubernetes controller that watches for custom resources and reconciles the actual cluster state to match the desired state. KubeRay is an operator that creates pods, services, and certificates when you create a RayCluster CR. |
+
 ## Custom Resource Definitions
 
 ### KubeRay CRDs
@@ -214,6 +228,20 @@ flowchart TB
 **Use case:** Production batch jobs, nightly training runs, large-scale experiments.
 
 **How it works:** A `RayJob` CR with inline `rayClusterSpec` tells KubeRay to create a temporary cluster, run the job, and delete the cluster when done. Zero idle waste -- the cluster only exists while the job runs.
+
+## Beyond This Workshop
+
+RHOAI 3.4 offers additional distributed workload capabilities not covered in this Ray-focused workshop:
+
+| Capability | Description | Official Docs |
+|-----------|-------------|---------------|
+| **Kubeflow Training Operator** | Distributed PyTorch training via `PyTorchJob` -- a parallel path to Ray for ML training | [Running Training Operator workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-training-operator-workloads_distributed-workloads) |
+| **AI Pipelines + Ray** | Running Ray workloads from Kubeflow Pipelines (KFP) with `@dsl.pipeline` | [Running workloads from AI pipelines](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads#running-distributed-data-science-workloads-from-ai-pipelines_distributed-workloads) |
+| **AMD / ROCm GPU support** | ROCm-compatible Ray images for AMD accelerators (`amd.com/gpu`) | [Supported Configurations](https://access.redhat.com/articles/rhoai-supported-configs-3.x) |
+| **RDMA / GPUDirect** | High-performance GPU interconnect for multi-node training with NVIDIA Network Operator | [Configuring RDMA](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/managing_openshift_ai/managing-distributed-workloads_managing-rhoai#configuring-a-cluster-for-rdma_managing-rhoai) |
+| **Disconnected environments** | Mirrored Ray images, private PyPI, custom CA bundles | [Running in disconnected environments](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads#running-distributed-data-science-workloads-in-a-disconnected-environment_distributed-workloads) |
+| **RayService** | Ray Serve for model inference with zero-downtime upgrades | [RayService quickstart](https://docs.ray.io/en/latest/cluster/kubernetes/getting-started/rayservice-quick-start.html) |
+| **Workload monitoring** | RHOAI dashboard metrics for distributed workloads (Kueue status, resource usage) | [Monitoring distributed workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/monitoring-distributed-workloads_distributed-workloads) |
 
 ---
 

@@ -230,6 +230,10 @@ The production job finishes. Because it's an ephemeral RayJob with `shutdownAfte
 - **Admin bottleneck:** The admin designs policies. The platform enforces them. No tickets.
 :::
 
+:::warning RHOAI 3.4 limitation
+Red Hat **does not support shared cohorts** in RHOAI 3.4. The Cohort/borrowing/preemption scenario above illustrates Kueue's capabilities for **educational purposes**. In production on RHOAI 3.4, use separate ClusterQueues without cohorts. Cohort support is expected in a future release. See [RHOAI 3.4 -- Example Kueue resource configurations](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/managing_openshift_ai/managing-distributed-workloads_managing-rhoai).
+:::
+
 ## Concept: Kueue Admission Flow
 
 :::warning Required label for all workloads
