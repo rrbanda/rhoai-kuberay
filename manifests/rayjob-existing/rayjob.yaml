@@ -3,6 +3,8 @@ kind: RayJob
 metadata:
   name: demo-rayjob-existing
   namespace: ray-demo
+  labels:
+    kueue.x-k8s.io/queue-name: default
 spec:
   suspend: false
   submissionMode: K8sJobMode

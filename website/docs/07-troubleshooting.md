@@ -44,7 +44,9 @@ flowchart TD
 ## Known Issue: AuthenticationReady (RHOAI 3.4.1)
 
 :::warning Unofficial workaround
-This root cause analysis and workaround are based on operational debugging, not official Red Hat documentation. The related official known issue is **RHOAIENG-1795** ("CodeFlare with Ray does not work with Gateway"), which as of RHOAI 3.4.1 has no official workaround. The fix below has been validated on a live RHOAI 3.4.1 cluster.
+This root cause analysis and workaround are based on operational debugging, not official Red Hat documentation. The fix below has been validated on a live RHOAI 3.4.1 cluster.
+
+Note: There is a **separate** official known issue **RHAIENG-1795** ("CodeFlare with Ray does not work with Gateway") where `cluster.wait_ready()` hangs because the gateway dashboard route does not respond. That issue affects dashboard access, while the AuthenticationReady issue below blocks **pod creation entirely** (0 pods, cluster stuck in `suspended`). They are related but distinct problems.
 :::
 
 ### Root Cause

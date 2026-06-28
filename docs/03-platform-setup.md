@@ -1,18 +1,52 @@
+---
+sidebar_position: 3
+slug: /03-platform-setup
+title: "Platform Setup"
+---
+
 # Module 3: Platform Setup (Administrator)
 
-This module covers the one-time platform configuration required before data scientists can create Ray clusters.
+## Learning Objectives
+
+By the end of this module you will understand:
+
+- How the `DataScienceCluster` controls which RHOAI components are active
+- The meaning of `Managed`, `Unmanaged`, and `Removed` lifecycle states
+- How Kueue's ResourceFlavor / ClusterQueue / LocalQueue hierarchy works
+- Why namespace labels matter for Kueue admission
+
+## Concept: DataScienceCluster Component Lifecycle
+
+The `DataScienceCluster` (DSC) custom resource is the single control point for all RHOAI components. Each component has a `managementState` field with three possible values:
+
+| State | Meaning |
+|-------|---------|
+| **Managed** | RHOAI deploys and manages this component. The operator creates the deployment, CRDs, RBAC, and keeps them reconciled. |
+| **Unmanaged** | RHOAI integrates with this component but does **not** deploy it. You are responsible for installing it separately. Used for Kueue because the standalone Red Hat build of Kueue operator is more capable than the embedded version. |
+| **Removed** | RHOAI does not deploy this component and does not integrate with it. If it was previously `Managed`, the operator removes the deployment. |
+
+For KubeRay distributed workloads, you need:
+
+```yaml
+spec:
+  components:
+    ray:
+      managementState: Managed      # RHOAI deploys KubeRay operator
+    kueue:
+      managementState: Unmanaged    # integrate with external Kueue
+      defaultClusterQueueName: default
+      defaultLocalQueueName: default
+```
+
+> **Official reference:** [RHOAI 3.4 -- Installing and deploying OpenShift AI](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/installing_and_uninstalling_openshift_ai_self-managed/installing-and-deploying-openshift-ai_install)
 
 ## Step 1: Enable KubeRay and Kueue in the DataScienceCluster
 
-The RHOAI operator manages KubeRay through the `DataScienceCluster` custom resource. You must set the `ray` component to `Managed` and `kueue` to `Unmanaged`.
+:::danger This step is mandatory
+You **must** patch the DataScienceCluster before anything else will work. Without this, the KubeRay operator is never deployed and Ray CRDs do not exist.
+:::
 
-### Using the CLI
-
-```bash
-oc apply -k manifests/platform/
-```
-
-Or patch the existing DataScienceCluster directly:
+Patch your existing DataScienceCluster to enable the `ray` and `kueue` components:
 
 ```bash
 oc patch datasciencecluster default-dsc --type='merge' -p '{
@@ -29,22 +63,25 @@ oc patch datasciencecluster default-dsc --type='merge' -p '{
 }'
 ```
 
-### What this does
-
-- `ray: Managed` -- RHOAI deploys the `kuberay-operator` pod in `redhat-ods-applications`, installs the Ray CRDs (`RayCluster`, `RayJob`, `RayService`), and configures mTLS and network policies.
-- `kueue: Unmanaged` -- Tells RHOAI to integrate with the externally-installed Red Hat build of Kueue operator rather than deploying its own.
-
-### Verify
+Wait 1-2 minutes for the RHOAI operator to reconcile, then verify:
 
 ```bash
-# KubeRay operator running
+# KubeRay operator pod (must show Running 1/1)
 oc get pods -n redhat-ods-applications | grep kuberay-operator
+```
 
-# Kueue operator running
-oc get pods -n openshift-kueue-operator | grep kueue
+Expected output:
 
-# CRDs installed
+```
+kuberay-operator-xxxxxxxxx-xxxxx   1/1     Running   0   60s
+```
+
+```bash
+# Ray CRDs installed
 oc get crd | grep ray.io
+
+# Kueue controller
+oc get pods -n openshift-kueue-operator | grep kueue
 ```
 
 Expected output:
@@ -55,36 +92,112 @@ rayjobs.ray.io               ...
 rayservices.ray.io            ...
 ```
 
-## Step 2: Configure Kueue Resources
+```
+kueue-controller-manager-xxxxxxxxx-xxxxx   1/1     Running   0   ...
+```
 
-Kueue requires three resources to manage workload admission:
+## Step 2: Apply Kueue Resources (ResourceFlavor + ClusterQueue)
+
+:::info What this step does
+This step only creates Kueue quota resources. It does **not** enable KubeRay -- that was done in Step 1 via the DSC patch. RHOAI may auto-create a default ClusterQueue when Kueue is enabled. Run `oc get clusterqueues` first to check.
+:::
+
+```bash
+oc apply -k manifests/platform/
+```
+
+## Concept: Kueue Admission Flow
+
+:::warning Required label for all workloads
+Every RayCluster and RayJob in a Kueue-managed namespace must have the label `kueue.x-k8s.io/queue-name: default` in its metadata. This label tells Kueue which LocalQueue to route the workload to. Without it, Kueue cannot create a `Workload` object and the resource will be rejected or ignored. The CodeFlare SDK adds this label automatically; for raw YAML manifests, you must add it yourself.
+:::
+
+When a RayCluster is created, Kueue intercepts it and decides whether to admit it based on available quota:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant K8sAPI as Kubernetes API
+    participant Kueue
+    participant KubeRay
+    participant Pods
+
+    User->>K8sAPI: Create RayCluster
+    K8sAPI->>Kueue: Webhook sets suspend=true
+    Kueue->>Kueue: Check ClusterQueue quota
+    alt Quota available
+        Kueue->>K8sAPI: Set suspend=false
+        K8sAPI->>KubeRay: Reconcile RayCluster
+        KubeRay->>Pods: Create head + worker pods
+    else Quota exhausted
+        Kueue->>Kueue: Hold in queue (pending)
+        Note over Kueue: Waits until resources free up
+    end
+```
+
+This is why every RayCluster you create initially shows `suspend: true` -- Kueue is holding it until admission.
+
+## Step 2: Configure Kueue Resources
 
 ### ResourceFlavor
 
-Defines hardware variations available in your cluster:
+A `ResourceFlavor` describes a type of hardware available in your cluster. An empty spec means "any node":
 
-```bash
-oc apply -f manifests/platform/resourceflavor.yaml
+```yaml
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: default-flavor
+spec: {}
 ```
 
-See [manifests/platform/resourceflavor.yaml](../manifests/platform/resourceflavor.yaml) for the full spec.
+For GPU nodes, you add labels and tolerations so Kueue knows which nodes can satisfy GPU requests:
+
+```yaml
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: gpu-flavor
+spec:
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"
+```
 
 ### ClusterQueue
 
-Defines the global resource pool with quotas:
+The `ClusterQueue` defines how much of each resource can be consumed:
 
-```bash
-oc apply -f manifests/platform/clusterqueue.yaml
+```yaml
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: default
+spec:
+  namespaceSelector:
+    matchLabels:
+      kueue.openshift.io/managed: "true"
+  resourceGroups:
+    - coveredResources: ["cpu", "memory"]
+      flavors:
+        - name: default-flavor
+          resources:
+            - name: cpu
+              nominalQuota: "16"
+            - name: memory
+              nominalQuota: 64Gi
 ```
 
-> **Note:** RHOAI may automatically create a default `ClusterQueue` when Kueue is enabled. Check with `oc get clusterqueues` first.
-
-### Verify Kueue
+:::info namespaceSelector
+The `namespaceSelector` controls which namespaces can use this queue. Only namespaces with the label `kueue.openshift.io/managed: "true"` will have their workloads admitted. This is a security boundary -- it prevents arbitrary namespaces from consuming shared quota.
+:::
 
 ```bash
-oc get clusterqueues
-oc get resourceflavors
+oc apply -k manifests/platform/
 ```
+
+> **Official reference:** [RHOAI 3.4 -- Managing distributed workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/managing_openshift_ai/managing-distributed-workloads_managing-rhoai)
 
 ## Step 3: Create the Demo Namespace
 
@@ -92,29 +205,33 @@ oc get resourceflavors
 oc apply -k manifests/base/
 ```
 
-This creates the `ray-demo` namespace with required labels and a default `LocalQueue`:
+This creates the `ray-demo` namespace with two critical labels:
 
-| Label | Purpose |
-|-------|---------|
-| `opendatahub.io/dashboard=true` | Makes the namespace visible in the RHOAI Dashboard |
-| `kueue.openshift.io/managed=true` | Enables Kueue workload management for this namespace |
+| Label | Why it matters |
+|-------|---------------|
+| `opendatahub.io/dashboard=true` | Makes the namespace visible in the RHOAI Dashboard UI |
+| `kueue.openshift.io/managed=true` | Matches the ClusterQueue's `namespaceSelector` -- without this label, Kueue will never admit workloads from this namespace |
+
+It also creates a `LocalQueue` that routes workloads to the `default` ClusterQueue.
 
 ### Verify
 
 ```bash
 oc get ns ray-demo --show-labels
 oc get localqueues -n ray-demo
+oc get clusterqueues
 ```
 
-## Summary
+## Summary Checklist
 
-After completing this module, you should have:
+After completing this module:
 
-- [x] KubeRay operator running in `redhat-ods-applications`
-- [x] Kueue operator running in `openshift-kueue-operator`
-- [x] ClusterQueue and ResourceFlavor configured
-- [x] `ray-demo` namespace created with proper labels and a LocalQueue
+- [ ] `kuberay-operator` pod is `Running` in `redhat-ods-applications`
+- [ ] `kueue-controller-manager` pods are `Running` in `openshift-kueue-operator`
+- [ ] `RayCluster`, `RayJob`, `RayService` CRDs exist
+- [ ] `ClusterQueue` and `ResourceFlavor` are configured
+- [ ] `ray-demo` namespace exists with correct labels and a `LocalQueue`
 
 ---
 
-**Next:** [Module 4 - RayCluster](04-raycluster.md)
+**Next:** [Module 4 -- RayCluster](04-raycluster)

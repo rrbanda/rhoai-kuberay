@@ -13,6 +13,23 @@ echo "  KubeRay on RHOAI -- Demo Deployment"
 echo "=========================================="
 echo ""
 
+echo "--- Pre-flight: Check KubeRay operator ---"
+if ! oc get pods -n redhat-ods-applications 2>/dev/null | grep -q 'kuberay-operator.*Running'; then
+  echo "ERROR: KubeRay operator is not running."
+  echo ""
+  echo "You must first enable KubeRay in your DataScienceCluster:"
+  echo ""
+  echo "  oc patch datasciencecluster default-dsc --type='merge' -p '{"
+  echo '    "spec":{"components":{"ray":{"managementState":"Managed"},'
+  echo '    "kueue":{"managementState":"Unmanaged","defaultClusterQueueName":"default","defaultLocalQueueName":"default"}}}}'
+  echo "  '"
+  echo ""
+  echo "Then wait 1-2 minutes and re-run this script."
+  exit 1
+fi
+echo "KubeRay operator is running."
+echo ""
+
 echo "--- Step 1: Create namespace and Kueue queue ---"
 oc apply -k "$REPO_ROOT/manifests/base/"
 echo ""

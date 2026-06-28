@@ -3,6 +3,8 @@ kind: RayCluster
 metadata:
   name: demo-cluster
   namespace: ray-demo
+  labels:
+    kueue.x-k8s.io/queue-name: default
 spec:
   rayVersion: '2.47.1'
   headGroupSpec:
@@ -23,8 +25,6 @@ spec:
                 memory: "2Gi"
   workerGroupSpecs:
     - replicas: 1
-      minReplicas: 1
-      maxReplicas: 4
       groupName: workers
       rayStartParams: {}
       template:

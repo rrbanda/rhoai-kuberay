@@ -63,6 +63,17 @@ The CodeFlare SDK is pre-installed in RHOAI workbench images. If you use a custo
 
 > **Official reference:** [RHOAI 3.4 -- Running Ray-based distributed workloads from Jupyter notebooks](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads)
 
+:::danger RHOAI 3.4.1: AuthenticationReady workaround required
+On RHOAI 3.4.1, clusters created via the CodeFlare SDK will hang at `cluster.wait_ready()` due to the AuthenticationReady bug (see [Module 7 -- Troubleshooting](/docs/07-troubleshooting)). After running `cluster.apply()`, a cluster administrator must run the workaround script from a terminal:
+
+```bash
+# Get the cluster name from the SDK output, then run:
+./scripts/fix-auth.sh <namespace> <cluster-name>
+```
+
+Only after this will `cluster.wait_ready()` complete. This applies to all three workflows below. Ephemeral RayJobs also need the fix on the child cluster they create.
+:::
+
 ## Workflow 1: Long-Running RayCluster
 
 Create a persistent Ray cluster for interactive development:
@@ -205,14 +216,52 @@ This copies notebooks into `demo-notebooks/` in your workbench:
 
 Additional demo notebooks may be available in the `additional-demos` folder. Run `copy_demo_nbs()` to see the full list for your SDK version.
 
-## Managing Clusters from Notebooks
+## Managing Clusters and Accessing the Dashboard
+
+The `view_clusters()` function is the primary way data scientists access the Ray dashboard in RHOAI:
 
 ```python
 from codeflare_sdk import view_clusters
-view_clusters()  # shows interactive UI in notebook
+view_clusters()
 ```
 
-This provides buttons to view cluster details, open the Ray dashboard, and delete clusters -- all without leaving the notebook.
+This renders interactive controls directly in your notebook:
+
+- **Select an existing cluster** -- toggle between clusters in your project
+- **View cluster details** -- status, resources, node count (same as `cluster.details()`)
+- **Open Ray Dashboard** -- opens the dashboard in a new browser tab via the gateway URL (`https://rh-ai.apps.<domain>/ray/<namespace>/<cluster-name>/`). Authentication is handled by the RHOAI gateway using your OpenShift credentials.
+- **View Jobs** -- opens the Jobs tab in the Ray dashboard
+- **Delete cluster** -- equivalent to `cluster.down()`
+- **Refresh Data** -- updates the cluster list and details
+
+You can also view clusters in other projects you have access to:
+
+```python
+view_clusters("another-project")
+```
+
+:::warning Known Issue: RHAIENG-1795
+The Ray Dashboard Gateway route may not respond correctly when the cluster was created through CodeFlare. If the "Open Ray Dashboard" button does not work, use port-forwarding as a fallback:
+
+```bash
+oc port-forward svc/<cluster-name>-head-svc -n <namespace> 8265:8265
+```
+
+Then open http://localhost:8265. See [Module 7 -- Troubleshooting](07-troubleshooting) for details.
+:::
+
+> **Official reference:** [RHOAI 3.4 -- Managing Ray clusters from within a Jupyter notebook](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads#managing-ray-clusters-from-within-a-jupyter-notebook_distributed-workloads)
+
+## Workshop Notebooks
+
+This repository includes ready-to-use Jupyter notebooks that implement the workflows above:
+
+| Notebook | Description |
+|----------|-------------|
+| [`01_create_cluster.ipynb`](https://github.com/rrbanda/rhoai-kuberay/blob/main/notebooks/01_create_cluster.ipynb) | Create a RayCluster with CodeFlare SDK, connect with mTLS, run distributed tasks |
+| [`02_submit_rayjob.ipynb`](https://github.com/rrbanda/rhoai-kuberay/blob/main/notebooks/02_submit_rayjob.ipynb) | Submit ephemeral and existing-cluster RayJobs via the SDK |
+
+Upload these to your RHOAI Workbench to follow along.
 
 ## Deep Dive
 

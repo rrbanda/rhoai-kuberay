@@ -88,13 +88,32 @@ After installing the operators, verify they are running:
 ```bash
 # RHOAI operator
 oc get csv -n redhat-ods-operator | grep rhods
+```
 
+Expected:
+
+```
+rhods-operator.3.4.1   Red Hat OpenShift AI   3.4.1   Succeeded
+```
+
+```bash
 # Kueue operator
 oc get pods -n openshift-kueue-operator | grep kueue
+```
 
+Expected:
+
+```
+kueue-controller-manager-xxxxxxxxx-xxxxx   1/1   Running   0   ...
+openshift-kueue-operator-xxxxxxxxx-xxxxx   1/1   Running   0   ...
+```
+
+```bash
 # cert-manager
 oc get pods -n cert-manager
 ```
+
+Expected: 3 pods running (cert-manager, cainjector, webhook).
 
 :::tip What to look for
 All pods should be in `Running` state with `1/1` ready. If any pod is in `CrashLoopBackOff`, check its logs with `oc logs <pod-name> -n <namespace>` before proceeding.

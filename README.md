@@ -14,15 +14,20 @@ A hands-on workshop for deploying and running distributed Ray workloads on Red H
 ## Quick Start
 
 ```bash
-# 1. Platform setup (admin)
+# 1. Enable KubeRay in RHOAI (admin -- REQUIRED first)
+oc patch datasciencecluster default-dsc --type='merge' -p '{
+  "spec":{"components":{"ray":{"managementState":"Managed"},
+  "kueue":{"managementState":"Unmanaged","defaultClusterQueueName":"default","defaultLocalQueueName":"default"}}}}'
+
+# 2. Apply Kueue resources and create namespace
 oc apply -k manifests/platform/
 oc apply -k manifests/base/
 
-# 2. Deploy a RayCluster
+# 3. Deploy a RayCluster
 oc apply -k manifests/raycluster/
 ./scripts/fix-auth.sh ray-demo demo-cluster
 
-# 3. Verify
+# 4. Verify
 ./scripts/test-cluster.sh ray-demo demo-cluster
 ```
 

@@ -1,14 +1,78 @@
+---
+sidebar_position: 6
+slug: /06-codeflare-sdk
+title: "CodeFlare SDK"
+---
+
 # Module 6: CodeFlare SDK (Data Scientist Workflow)
 
-The CodeFlare SDK provides a Python interface for data scientists to create Ray clusters and submit jobs without writing Kubernetes YAML. It is pre-installed in RHOAI workbench images.
+## Learning Objectives
+
+By the end of this module you will understand:
+
+- Why the SDK exists and what it generates under the hood
+- The three SDK workflows (workspace cluster, quick-iteration, fire-and-forget)
+- How mTLS certificate generation works and why it is required
+- How to use the SDK from an RHOAI Workbench
+
+## Concept: Why Use the SDK Instead of Raw YAML?
+
+You could create RayClusters and RayJobs by writing YAML manifests. The CodeFlare SDK exists because **data scientists should not need to know Kubernetes.** The SDK:
+
+1. **Abstracts YAML** -- `ClusterConfiguration(num_workers=2)` generates the full RayCluster spec
+2. **Handles authentication** -- auto-detects your Kubernetes credentials when running inside a workbench
+3. **Manages mTLS** -- generates TLS certificates so your notebook can connect to the secure Ray cluster
+4. **Provides observability** -- `cluster.details()`, `cluster.status()`, and `view_clusters()` show cluster state without `kubectl`
+
+### What happens under the hood
+
+```mermaid
+sequenceDiagram
+    participant NB as Jupyter Notebook
+    participant SDK as CodeFlare SDK
+    participant K8s as Kubernetes API
+    participant KR as KubeRay Operator
+    participant Kueue
+
+    NB->>SDK: cluster.apply()
+    SDK->>K8s: Create RayCluster CR
+    K8s->>Kueue: Intercept, set suspend=true
+    Kueue->>K8s: Admit, set suspend=false
+    K8s->>KR: Reconcile RayCluster
+    KR->>K8s: Create head + worker pods
+
+    NB->>SDK: generate_cert.generate_tls_cert()
+    SDK->>K8s: Read CA secret from namespace
+    SDK->>NB: Write client certs to local files
+
+    NB->>SDK: ray.init(cluster.cluster_uri())
+    SDK->>NB: Connect via mTLS to head GCS
+```
 
 ## Setting Up a Workbench
 
 1. In the RHOAI Dashboard, navigate to **Data Science Projects**
-2. Create or select a project
+2. Create or select a project (ensure it has `kueue.openshift.io/managed=true` label)
 3. Click **Create workbench**
-4. Select a notebook image that includes the CodeFlare SDK (e.g., `Standard Data Science`)
+4. Select a notebook image that includes the CodeFlare SDK (e.g., **Standard Data Science**)
 5. Launch the workbench and open JupyterLab
+
+:::info Why image selection matters
+The CodeFlare SDK is pre-installed in RHOAI workbench images. If you use a custom image, you need `pip install codeflare-sdk`. The Python version in the workbench image must also match the Ray cluster image (both should be Python 3.11 for `quay.io/modh/ray:2.47.1-py311-cu121`).
+:::
+
+> **Official reference:** [RHOAI 3.4 -- Running Ray-based distributed workloads from Jupyter notebooks](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads)
+
+:::danger RHOAI 3.4.1: AuthenticationReady workaround required
+On RHOAI 3.4.1, clusters created via the CodeFlare SDK will hang at `cluster.wait_ready()` due to the AuthenticationReady bug (see [Module 7 -- Troubleshooting](/docs/07-troubleshooting)). After running `cluster.apply()`, a cluster administrator must run the workaround script from a terminal:
+
+```bash
+# Get the cluster name from the SDK output, then run:
+./scripts/fix-auth.sh <namespace> <cluster-name>
+```
+
+Only after this will `cluster.wait_ready()` complete. This applies to all three workflows below. Ephemeral RayJobs also need the fix on the child cluster they create.
+:::
 
 ## Workflow 1: Long-Running RayCluster
 
@@ -20,56 +84,65 @@ from codeflare_sdk import Cluster, ClusterConfiguration
 cluster = Cluster(
     ClusterConfiguration(
         name="my-workspace",
+        namespace="ray-demo",
         num_workers=2,
-        worker_cpu_requests=2,
-        worker_memory_requests=8,
+        worker_cpu_requests=1,
+        worker_memory_requests=4,
         image="quay.io/modh/ray:2.47.1-py311-cu121",
         local_queue="default",
     )
 )
 
-# Start the cluster
 cluster.apply()
 cluster.wait_ready()
-
-# View cluster details
 cluster.details()
 ```
 
-### Connect and use interactively
+### Connect with mTLS
+
+RHOAI enables mTLS on all Ray clusters. To connect your notebook to the cluster, you must generate client certificates:
+
+```python
+from codeflare_sdk import generate_cert
+
+generate_cert.generate_tls_cert(cluster.config.name, cluster.config.namespace)
+generate_cert.export_env(cluster.config.name, cluster.config.namespace)
+```
+
+:::info What this does
+1. Reads the CA certificate secret (`<cluster-name>-ca-secret-*`) from the namespace
+2. Generates a client certificate signed by that CA
+3. Sets `RAY_USE_TLS`, `RAY_TLS_SERVER_CERT`, `RAY_TLS_SERVER_KEY`, `RAY_TLS_CA_CERT` environment variables
+4. Now `ray.init()` will use these certs to authenticate to the cluster
+:::
 
 ```python
 import ray
 
-# mTLS certificate setup (required in RHOAI)
-from codeflare_sdk import generate_cert
-generate_cert.generate_tls_cert(cluster.config.name, cluster.config.namespace)
-generate_cert.export_env(cluster.config.name, cluster.config.namespace)
-
-# Connect
 ray.init(cluster.cluster_uri())
+print("Nodes:", len(ray.nodes()))
 
-# Run distributed tasks
 @ray.remote
-def train_model(batch_id):
+def train(batch_id):
     import time
     time.sleep(2)
     return f"Batch {batch_id} trained"
 
-results = ray.get([train_model.remote(i) for i in range(8)])
+results = ray.get([train.remote(i) for i in range(8)])
 for r in results:
     print(r)
 ```
 
-### Clean up
+### Cleanup
 
 ```python
-cluster.down()
+ray.shutdown()
+cluster.down()  # deletes the RayCluster CR
 ```
 
 ## Workflow 2: Quick-Iteration RayJob
 
-Submit a job to your existing workspace cluster:
+Submit a job to your existing workspace cluster -- no startup wait:
 
 ```python
 from codeflare_sdk import RayJob
@@ -90,9 +163,17 @@ quick_job.status()
 quick_job.logs()
 ```
 
+:::tip runtime_env
+The `runtime_env` dictionary tells Ray to:
+- `working_dir`: upload this directory to the cluster
+- `pip`: install these Python packages on the workers before running
+
+This means your workers do not need your code pre-installed in the image.
+:::
+
 ## Workflow 3: Ephemeral RayJob (Fire-and-Forget)
 
-Create a job that provisions its own cluster and tears it down after completion:
+Create a job that provisions its own cluster and tears it down after:
 
 ```python
 from codeflare_sdk import RayJob, ManagedClusterConfig
@@ -102,9 +183,9 @@ production_job = RayJob(
     local_queue="default",
     cluster_config=ManagedClusterConfig(
         num_workers=2,
-        worker_cpu_requests=2,
-        worker_cpu_limits=2,
-        worker_memory_requests=4,
+        worker_cpu_requests=1,
+        worker_cpu_limits=1,
+        worker_memory_requests=2,
         worker_memory_limits=4,
     ),
     entrypoint="python train_model.py",
@@ -117,52 +198,78 @@ production_job = RayJob(
 production_job.submit()
 ```
 
-### Monitor
+## Using the Built-in Demo Notebooks
 
-```python
-production_job.status()
-production_job.logs()
-```
-
-## Using the Demo Notebooks
-
-RHOAI includes demo notebooks from the CodeFlare SDK. To access them:
+RHOAI ships guided demo notebooks with the CodeFlare SDK:
 
 ```python
 from codeflare_sdk import copy_demo_nbs
 copy_demo_nbs()
 ```
 
-This copies guided demos into `demo-notebooks/` in your workbench:
+This copies notebooks into `demo-notebooks/` in your workbench:
 
-| Notebook | Description |
-|----------|-------------|
-| `0_basic_ray.ipynb` | Basic Ray usage |
-| `1_cluster_setup.ipynb` | Creating and configuring a RayCluster |
-| `2_basic_interactive.ipynb` | Interactive use with mTLS authentication |
+| Notebook | What it teaches |
+|----------|----------------|
+| `2_basic_interactive.ipynb` | Interactive use with mTLS authentication and cluster setup |
 | `3_widget_example.ipynb` | Interactive browser controls for cluster management |
 
-## Managing Clusters from Notebooks
+Additional demo notebooks may be available in the `additional-demos` folder. Run `copy_demo_nbs()` to see the full list for your SDK version.
 
-Use the `view_clusters()` function for interactive cluster management:
+## Managing Clusters and Accessing the Dashboard
+
+The `view_clusters()` function is the primary way data scientists access the Ray dashboard in RHOAI:
 
 ```python
 from codeflare_sdk import view_clusters
 view_clusters()
 ```
 
-This provides interactive controls to:
-- View all Ray clusters in the project
-- Check cluster status and resource usage
-- Open the Ray dashboard
-- Delete clusters
+This renders interactive controls directly in your notebook:
 
-## References
+- **Select an existing cluster** -- toggle between clusters in your project
+- **View cluster details** -- status, resources, node count (same as `cluster.details()`)
+- **Open Ray Dashboard** -- opens the dashboard in a new browser tab via the gateway URL (`https://rh-ai.apps.<domain>/ray/<namespace>/<cluster-name>/`). Authentication is handled by the RHOAI gateway using your OpenShift credentials.
+- **View Jobs** -- opens the Jobs tab in the Ray dashboard
+- **Delete cluster** -- equivalent to `cluster.down()`
+- **Refresh Data** -- updates the cluster list and details
 
-- [RHOAI 3.4 - Running Ray-based workloads from notebooks](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads)
-- [CodeFlare SDK Documentation](https://project-codeflare.github.io/codeflare-sdk/)
-- [Red Hat Developer - Tame Ray workloads with KubeRay and Kueue](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue)
+You can also view clusters in other projects you have access to:
+
+```python
+view_clusters("another-project")
+```
+
+:::warning Known Issue: RHAIENG-1795
+The Ray Dashboard Gateway route may not respond correctly when the cluster was created through CodeFlare. If the "Open Ray Dashboard" button does not work, use port-forwarding as a fallback:
+
+```bash
+oc port-forward svc/<cluster-name>-head-svc -n <namespace> 8265:8265
+```
+
+Then open http://localhost:8265. See [Module 7 -- Troubleshooting](07-troubleshooting) for details.
+:::
+
+> **Official reference:** [RHOAI 3.4 -- Managing Ray clusters from within a Jupyter notebook](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads#managing-ray-clusters-from-within-a-jupyter-notebook_distributed-workloads)
+
+## Workshop Notebooks
+
+This repository includes ready-to-use Jupyter notebooks that implement the workflows above:
+
+| Notebook | Description |
+|----------|-------------|
+| [`01_create_cluster.ipynb`](https://github.com/rrbanda/rhoai-kuberay/blob/main/notebooks/01_create_cluster.ipynb) | Create a RayCluster with CodeFlare SDK, connect with mTLS, run distributed tasks |
+| [`02_submit_rayjob.ipynb`](https://github.com/rrbanda/rhoai-kuberay/blob/main/notebooks/02_submit_rayjob.ipynb) | Submit ephemeral and existing-cluster RayJobs via the SDK |
+
+Upload these to your RHOAI Workbench to follow along.
+
+## Deep Dive
+
+- [CodeFlare SDK documentation](https://project-codeflare.github.io/codeflare-sdk/)
+- [CodeFlare SDK GitHub](https://github.com/project-codeflare/codeflare-sdk)
+- [RHOAI 3.4 -- Running Ray-based distributed workloads](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads)
+- [Red Hat Developer -- Tame Ray workloads with KubeRay and Kueue](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue)
 
 ---
 
-**Next:** [Module 7 - Troubleshooting](07-troubleshooting.md)
+**Next:** [Module 7 -- Troubleshooting](07-troubleshooting)

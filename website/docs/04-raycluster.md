@@ -78,6 +78,9 @@ Using a non-existent tag (like `2.41.0-py311-cu124`) causes `ImagePullBackOff`.
 ### Key Spec Fields Explained
 
 ```yaml
+metadata:
+  labels:
+    kueue.x-k8s.io/queue-name: default  # Required: routes to Kueue LocalQueue
 spec:
   rayVersion: '2.47.1'            # Must match image tag
   headGroupSpec:
@@ -96,10 +99,23 @@ spec:
               limits:
                 memory: "4Gi"      # Headroom for spikes
   workerGroupSpecs:
-    - replicas: 1                  # Initial worker count
-      minReplicas: 1               # Autoscaler floor
-      maxReplicas: 4               # Autoscaler ceiling
+    - replicas: 1                  # Number of worker pods
 ```
+
+:::tip Autoscaling
+The base manifest uses a fixed `replicas: 1`. To enable Ray autoscaling (scale workers up/down based on demand), add these fields:
+
+```yaml
+spec:
+  enableInTreeAutoscaling: true
+  workerGroupSpecs:
+    - replicas: 1
+      minReplicas: 1
+      maxReplicas: 4
+```
+
+Without `enableInTreeAutoscaling: true`, the `minReplicas`/`maxReplicas` fields have no effect.
+:::
 
 ## Step 2: Apply the AuthenticationReady Workaround
 
@@ -165,17 +181,69 @@ ray.shutdown()
 "
 ```
 
-## Step 5: Access the Ray Dashboard (Optional)
+## Step 5: Access the Ray Dashboard
+
+RHOAI automatically exposes the Ray dashboard through the **data-science-gateway** -- no port-forwarding required. The KubeRay authentication controller creates an `HTTPRoute` that routes traffic from the gateway to your cluster's dashboard.
+
+### Method 1: Gateway URL (Recommended)
+
+The dashboard is available at:
+
+```
+https://rh-ai.apps.<cluster-domain>/ray/<namespace>/<cluster-name>/
+```
+
+For example, on a cluster with domain `cluster-xyz.sandbox.opentlc.com`:
+
+```
+https://rh-ai.apps.cluster-xyz.sandbox.opentlc.com/ray/ray-demo/demo-cluster/
+```
+
+You can find your gateway domain with:
+
+```bash
+oc get gatewayconfigs.services.platform.opendatahub.io default-gateway \
+  -o jsonpath='{.status.domain}'
+```
+
+Authentication is handled by the gateway's `kube-auth-proxy` -- you log in with your OpenShift credentials.
+
+### Method 2: From a Jupyter Notebook
+
+If you are working inside an RHOAI Workbench, the CodeFlare SDK provides a one-click "Open Ray Dashboard" button:
+
+```python
+from codeflare_sdk import view_clusters
+view_clusters()
+```
+
+This renders interactive controls inside your notebook. Click **Open Ray Dashboard** to open the dashboard in a new browser tab. The SDK constructs the correct gateway URL automatically.
+
+> **Official reference:** [RHOAI 3.4 -- Managing Ray clusters from within a Jupyter notebook](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads#managing-ray-clusters-from-within-a-jupyter-notebook_distributed-workloads)
+
+### Method 3: Port-Forward (Fallback)
+
+If the gateway route is not working (see known issue [RHAIENG-1795](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/release_notes/known-issues_relnotes) below), you can port-forward directly:
 
 ```bash
 oc port-forward svc/demo-cluster-head-svc -n ray-demo 8265:8265
 ```
 
-Open http://localhost:8265. The dashboard shows connected nodes, submitted jobs, and resource utilization.
+Open http://localhost:8265.
 
-:::tip Dashboard authentication
-The kube-rbac-proxy sidecar protects the dashboard. When port-forwarding directly to the service (not through the proxy), you bypass RBAC. In production, access should go through the RHOAI gateway.
+:::warning Known Issue: RHAIENG-1795
+The RHOAI 3.4 release notes document that the Ray Dashboard Gateway route **may not respond correctly** when the cluster is created through CodeFlare. If the gateway URL returns errors or hangs, use port-forwarding as a fallback. This is expected to be fixed in a future RHOAI release.
 :::
+
+### What the Dashboard Shows
+
+The Ray dashboard provides:
+
+- **Overview** -- Connected nodes, CPU/memory/GPU utilization, cluster health
+- **Jobs** -- All submitted jobs with status, logs, and execution details
+- **Actors** -- Running and dead actors across the cluster
+- **Metrics** -- Grafana-style metrics charts for task throughput, object store usage, and node resources
+- **Logs** -- Centralized log viewer for all Ray processes across nodes
 
 ## Deep Dive
 

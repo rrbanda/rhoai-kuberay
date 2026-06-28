@@ -3,6 +3,8 @@ kind: RayJob
 metadata:
   name: demo-rayjob-ephemeral
   namespace: ray-demo
+  labels:
+    kueue.x-k8s.io/queue-name: default
 spec:
   submissionMode: K8sJobMode
   shutdownAfterJobFinishes: true

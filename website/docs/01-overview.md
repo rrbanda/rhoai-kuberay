@@ -44,10 +44,14 @@ A Ray cluster has two types of nodes:
 
 ```mermaid
 flowchart LR
+    Client["Client / Notebook\n(Driver)"]
+
     subgraph head [Head Node]
         GCS["GCS (metadata)"]
         Dashboard["Dashboard :8265"]
-        Driver["Driver / Client"]
+        Metrics["Metrics :8080"]
+        HeadRaylet["Raylet\n(scheduling disabled)"]
+        HeadObjStore["Object Store"]
     end
 
     subgraph w1 [Worker Node 1]
@@ -60,13 +64,19 @@ flowchart LR
         ObjStore2["Object Store"]
     end
 
-    Driver -->|"submit tasks"| GCS
+    Client -->|"ray.init()"| GCS
     GCS -->|"schedule"| Raylet1
     GCS -->|"schedule"| Raylet2
+    HeadRaylet <-->|"shared memory"| HeadObjStore
     Raylet1 <-->|"shared memory"| ObjStore1
     Raylet2 <-->|"shared memory"| ObjStore2
     ObjStore1 <-->|"transfer objects"| ObjStore2
+    HeadObjStore <-->|"transfer objects"| ObjStore1
 ```
+
+:::info Head node still runs a Raylet
+Even with `num-cpus: 0`, the head runs a Raylet process and object store. The `num-cpus: 0` setting prevents Ray from **scheduling tasks** on the head, but the Raylet is still needed for cluster coordination and object transfers.
+:::
 
 | Component | Role |
 |-----------|------|

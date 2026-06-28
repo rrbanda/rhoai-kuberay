@@ -40,13 +40,13 @@ spec:
 
 > **Official reference:** [RHOAI 3.4 -- Installing and deploying OpenShift AI](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/installing_and_uninstalling_openshift_ai_self-managed/installing-and-deploying-openshift-ai_install)
 
-## Step 1: Enable KubeRay and Kueue
+## Step 1: Enable KubeRay and Kueue in the DataScienceCluster
 
-```bash
-oc apply -k manifests/platform/
-```
+:::danger This step is mandatory
+You **must** patch the DataScienceCluster before anything else will work. Without this, the KubeRay operator is never deployed and Ray CRDs do not exist.
+:::
 
-Or patch the existing DSC directly:
+Patch your existing DataScienceCluster to enable the `ray` and `kueue` components:
 
 ```bash
 oc patch datasciencecluster default-dsc --type='merge' -p '{
@@ -63,12 +63,20 @@ oc patch datasciencecluster default-dsc --type='merge' -p '{
 }'
 ```
 
-### Verify
+Wait 1-2 minutes for the RHOAI operator to reconcile, then verify:
 
 ```bash
-# KubeRay operator pod
+# KubeRay operator pod (must show Running 1/1)
 oc get pods -n redhat-ods-applications | grep kuberay-operator
+```
 
+Expected output:
+
+```
+kuberay-operator-xxxxxxxxx-xxxxx   1/1     Running   0   60s
+```
+
+```bash
 # Ray CRDs installed
 oc get crd | grep ray.io
 
@@ -76,7 +84,33 @@ oc get crd | grep ray.io
 oc get pods -n openshift-kueue-operator | grep kueue
 ```
 
+Expected output:
+
+```
+rayclusters.ray.io           ...
+rayjobs.ray.io               ...
+rayservices.ray.io            ...
+```
+
+```
+kueue-controller-manager-xxxxxxxxx-xxxxx   1/1     Running   0   ...
+```
+
+## Step 2: Apply Kueue Resources (ResourceFlavor + ClusterQueue)
+
+:::info What this step does
+This step only creates Kueue quota resources. It does **not** enable KubeRay -- that was done in Step 1 via the DSC patch. RHOAI may auto-create a default ClusterQueue when Kueue is enabled. Run `oc get clusterqueues` first to check.
+:::
+
+```bash
+oc apply -k manifests/platform/
+```
+
 ## Concept: Kueue Admission Flow
+
+:::warning Required label for all workloads
+Every RayCluster and RayJob in a Kueue-managed namespace must have the label `kueue.x-k8s.io/queue-name: default` in its metadata. This label tells Kueue which LocalQueue to route the workload to. Without it, Kueue cannot create a `Workload` object and the resource will be rejected or ignored. The CodeFlare SDK adds this label automatically; for raw YAML manifests, you must add it yourself.
+:::
 
 When a RayCluster is created, Kueue intercepts it and decides whether to admit it based on available quota:
 

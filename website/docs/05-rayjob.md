@@ -106,10 +106,18 @@ spec:
 ```bash
 # Watch job progress
 oc get rayjob -n ray-demo -w
+```
 
-# Check child cluster
-oc get raycluster -n ray-demo
+Expected output progression:
 
+```
+NAME                    JOB STATUS   DEPLOYMENT STATUS   RAY CLUSTER NAME         AGE
+demo-rayjob-ephemeral                Initializing        demo-rayjob-eph-xxxxx    10s
+demo-rayjob-ephemeral   RUNNING      Running             demo-rayjob-eph-xxxxx    2m
+demo-rayjob-ephemeral   SUCCEEDED    Complete            demo-rayjob-eph-xxxxx    3m
+```
+
+```bash
 # View job logs (from the K8s Job submitter pod)
 oc logs -n ray-demo -l batch.kubernetes.io/job-name --tail=20
 ```
