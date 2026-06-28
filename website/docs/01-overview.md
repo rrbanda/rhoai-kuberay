@@ -145,25 +145,75 @@ This separation lets platform admins define **cluster-wide policies** (ClusterQu
 
 ## Three Workflows
 
-This workshop covers the three workflows described in the [Red Hat Developer article](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue):
+This workshop covers the three workflows described in the [Red Hat Developer article](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue). The diagram below shows how the CodeFlare SDK connects data scientists to both persistent workspace clusters and ephemeral job-managed clusters, with Kueue managing admission for both paths:
+
+```mermaid
+flowchart TB
+    subgraph ds [Data Scientist]
+        NB["Jupyter Notebook"]
+        SDK["CodeFlare SDK"]
+    end
+
+    subgraph path1 [Workspace Path]
+        RC["RayCluster CR\n(long-lived)"]
+        W1Head["Head Pod"]
+        W1Worker["Worker Pods"]
+        QuickJob["RayJob CR\n(submit to existing)"]
+    end
+
+    subgraph path2 [Ephemeral Path]
+        RJ["RayJob CR\n(fire-and-forget)"]
+        EphRC["RayCluster\n(auto-created)"]
+        EphHead["Head Pod"]
+        EphWorker["Worker Pods"]
+        Cleanup["Auto-cleanup\nafter completion"]
+    end
+
+    subgraph kueue [Kueue Admission]
+        LQ["LocalQueue"]
+        CQ["ClusterQueue"]
+    end
+
+    NB --> SDK
+    SDK -->|"cluster.apply()"| RC
+    SDK -->|"RayJob(cluster_name=...)"| QuickJob
+    SDK -->|"RayJob(cluster_config=...)"| RJ
+
+    RC --> LQ
+    RJ --> LQ
+    LQ --> CQ
+    CQ -->|"admit"| RC
+    CQ -->|"admit"| RJ
+
+    RC --> W1Head
+    RC --> W1Worker
+    QuickJob -->|"submit to"| W1Head
+
+    RJ --> EphRC
+    EphRC --> EphHead
+    EphRC --> EphWorker
+    EphRC -->|"job done"| Cleanup
+```
+
+> **Source:** Architecture based on [Figure 1 from Red Hat Developer -- Tame Ray workloads with KubeRay and Kueue](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue)
 
 ### 1. Long-Running RayCluster (Interactive Workspace)
 
 **Use case:** A data scientist needs a persistent multi-node environment for prototyping, exploratory analysis, or connecting to live systems.
 
-**How it works:** The CodeFlare SDK creates a `RayCluster` CR. Kueue admits it when quota is available. The cluster stays running until explicitly deleted.
+**How it works:** The CodeFlare SDK creates a `RayCluster` CR. Kueue admits it when quota is available. The cluster stays running until explicitly deleted. You connect with `ray.init(cluster.cluster_uri())` for interactive work.
 
 ### 2. Quick-Iteration RayJob (Existing Cluster)
 
 **Use case:** Your code moved from a notebook into a `.py` script. You want sub-second submission time for the "code-run-check" loop.
 
-**How it works:** A `RayJob` CR with `clusterSelector` targets your running workspace cluster. No cluster startup wait.
+**How it works:** A `RayJob` CR with `clusterSelector` targets your running workspace cluster. No cluster startup wait -- submission is near-instant.
 
 ### 3. Ephemeral RayJob (Fire-and-Forget)
 
 **Use case:** Production batch jobs, nightly training runs, large-scale experiments.
 
-**How it works:** A `RayJob` CR with inline `rayClusterSpec` tells KubeRay to create a temporary cluster, run the job, and delete the cluster when done. Zero idle waste.
+**How it works:** A `RayJob` CR with inline `rayClusterSpec` tells KubeRay to create a temporary cluster, run the job, and delete the cluster when done. Zero idle waste -- the cluster only exists while the job runs.
 
 ---
 

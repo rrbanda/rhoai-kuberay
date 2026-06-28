@@ -106,6 +106,50 @@ This step only creates Kueue quota resources. It does **not** enable KubeRay -- 
 oc apply -k manifests/platform/
 ```
 
+## Concept: Kueue Resource Hierarchy
+
+Kueue uses a hierarchical model to manage resources across teams. Understanding this hierarchy is key to configuring quota management correctly:
+
+```mermaid
+flowchart TB
+    subgraph cluster [Cluster Scope]
+        RF1["ResourceFlavor\ndefault-flavor\n(any CPU node)"]
+        RF2["ResourceFlavor\ngpu-flavor\n(GPU nodes with toleration)"]
+        CQ["ClusterQueue: default\n16 CPU | 64Gi RAM | 2 GPU"]
+    end
+
+    subgraph ns1 [Namespace: team-a]
+        LQ1["LocalQueue: default"]
+        W1["RayCluster\n(admitted)"]
+        W2["RayJob\n(pending)"]
+    end
+
+    subgraph ns2 [Namespace: team-b]
+        LQ2["LocalQueue: default"]
+        W3["RayCluster\n(admitted)"]
+    end
+
+    RF1 -->|"provides CPU/memory"| CQ
+    RF2 -->|"provides GPU"| CQ
+    LQ1 -->|"routes to"| CQ
+    LQ2 -->|"routes to"| CQ
+    W1 --> LQ1
+    W2 --> LQ1
+    W3 --> LQ2
+    CQ -->|"admits based on quota"| W1
+    CQ -->|"quota full, queued"| W2
+    CQ -->|"admits"| W3
+```
+
+| Level | Resource | Scope | Purpose |
+|-------|----------|-------|---------|
+| **Hardware** | ResourceFlavor | Cluster | Describes a type of node (CPU-only, GPU, specific instance type) |
+| **Quota** | ClusterQueue | Cluster | Defines how much of each resource can be consumed. References flavors. |
+| **Entry point** | LocalQueue | Namespace | Where teams submit workloads. Routes to a ClusterQueue. |
+| **Workload** | Workload | Namespace | Auto-created by Kueue for each RayCluster/RayJob. Tracks admission state. |
+
+> **Source:** Resource model based on [Figure 2 from Red Hat Developer -- Tame Ray workloads with KubeRay and Kueue](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue)
+
 ## Concept: Kueue Admission Flow
 
 :::warning Required label for all workloads
