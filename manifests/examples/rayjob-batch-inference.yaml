@@ -11,10 +11,12 @@ spec:
   ttlSecondsAfterFinished: 600
   runtimeEnvYAML: |
     pip:
-      - transformers>=4.30
-      - torch>=2.0
+      - torch==2.5.1
+      - transformers==4.46.3
       - Pillow
       - numpy
+    env_vars:
+      PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cu121"
   entrypoint: |
     python -c "
     import ray

@@ -11,25 +11,27 @@ spec:
   ttlSecondsAfterFinished: 600
   runtimeEnvYAML: |
     pip:
-      - torch>=2.0
-      - torchvision
+      - torch==2.5.1
+      - torchvision==0.20.1
+    env_vars:
+      PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cu121"
   entrypoint: |
     python -c "
     import ray
-    import torch
-    import torch.nn as nn
-    import torch.optim as optim
-    from torchvision import datasets, transforms
 
     ray.init()
 
-    print(f'GPU available: {torch.cuda.is_available()}')
-    if torch.cuda.is_available():
-        print(f'GPU device: {torch.cuda.get_device_name(0)}')
-        print(f'GPU memory: {torch.cuda.get_device_properties(0).total_mem / 1e9:.1f} GB')
-
     @ray.remote(num_gpus=1)
     def train_model():
+        import torch
+        import torch.nn as nn
+        import torch.optim as optim
+        from torchvision import datasets, transforms
+
+        print(f'GPU available: {torch.cuda.is_available()}')
+        if torch.cuda.is_available():
+            print(f'GPU device: {torch.cuda.get_device_name(0)}')
+            print(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB')
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Training on: {device}')
 
@@ -39,7 +41,7 @@ spec:
         ])
 
         trainset = datasets.CIFAR10(root='/tmp/data', train=True, download=True, transform=transform)
-        trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
+        trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=0)
 
         model = nn.Sequential(
             nn.Conv2d(3, 32, 3, padding=1), nn.ReLU(), nn.MaxPool2d(2),

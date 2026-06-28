@@ -25,6 +25,15 @@ Before running any example:
 1. Complete [Module 3 -- Platform Setup](03-platform-setup) (namespace + Kueue configured)
 2. Have the `ray-demo` namespace ready with a LocalQueue
 
+:::warning Network access required
+The GPU examples download dependencies at runtime:
+- **PyTorch CIFAR-10:** Downloads CIFAR-10 dataset (~170MB) and PyTorch CUDA wheels from PyPI
+- **Batch Inference:** Downloads `google/vit-base-patch16-224` model (~350MB) from HuggingFace Hub
+- **Counter Actor:** Installs `requests` from PyPI
+
+Ensure your cluster has egress access to `pypi.org`, `download.pytorch.org`, and `huggingface.co`. For air-gapped clusters, use custom images with dependencies pre-baked.
+:::
+
 ## How to Run Each Example
 
 All examples follow the same pattern:
