@@ -29,19 +29,20 @@
 .hero--primary {
   background: linear-gradient(135deg, #cc0000 0%, #8f0000 60%, #1a1a2e 100%);
   color: #fff;
-  padding: 5rem 0;
+  padding: 2.5rem 0 2rem;
 }
 
 .hero--primary .hero__title {
-  font-size: 3rem;
+  font-size: 2.4rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  margin-bottom: 0.4rem;
 }
 
 .hero--primary .hero__subtitle {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   opacity: 0.9;
-  max-width: 600px;
+  max-width: 550px;
   margin: 0 auto;
 }
 

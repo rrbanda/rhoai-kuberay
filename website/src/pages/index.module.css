@@ -1,5 +1,5 @@
 .heroBanner {
-  padding: 5rem 0;
+  padding: 2.5rem 0 2rem;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 
 .features {
