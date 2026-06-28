@@ -97,8 +97,8 @@ export default function Home() {
     <Layout title="Home" description={siteConfig.tagline}>
       <HomepageHeader />
       <main>
-        {/* Version badges */}
-        <section className="container" style={{textAlign: 'center', padding: '2rem 0 0'}}>
+        {/* Version badges - tight under hero */}
+        <section className="container" style={{textAlign: 'center', padding: '1rem 0 0', marginTop: '-1.5rem'}}>
           <div className="version-badges">
             {versions.map((v, i) => (
               <span key={i} className="version-badge">
@@ -112,49 +112,42 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Workshop content - tabbed */}
-        <section className={styles.features}>
-          <div className="container">
-            <Tabs>
-              <TabItem value="highlights" label="What You Will Learn" default>
-                <div className="row" style={{marginTop: '1rem'}}>
-                  {features.map((props, idx) => (
-                    <Feature key={idx} {...props} />
-                  ))}
-                </div>
-              </TabItem>
-              <TabItem value="modules" label="All 8 Modules">
-                <div className="row" style={{marginTop: '1rem'}}>
-                  {modules.map((m, i) => (
-                    <div key={i} className="col col--4" style={{marginBottom: '1rem'}}>
-                      <Link to={m.to} style={{textDecoration: 'none', color: 'inherit'}}>
-                        <div className="feature-card" style={{display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem'}}>
-                          <span style={{
-                            fontSize: '1.5rem', fontWeight: 800, opacity: 0.3,
-                            minWidth: '2rem', textAlign: 'center'
-                          }}>{m.num}</span>
-                          <div>
-                            <strong>{m.title}</strong>
-                            <br />
-                            <span style={{fontSize: '0.85rem', opacity: 0.7}}>{m.desc}</span>
-                          </div>
+        {/* All content in one tab group */}
+        <section className="container" style={{padding: '1.5rem 0 3rem'}}>
+          <Tabs>
+            <TabItem value="highlights" label="What You Will Learn" default>
+              <div className="row" style={{marginTop: '1rem'}}>
+                {features.map((props, idx) => (
+                  <Feature key={idx} {...props} />
+                ))}
+              </div>
+            </TabItem>
+            <TabItem value="modules" label="All 8 Modules">
+              <div className="row" style={{marginTop: '1rem'}}>
+                {modules.map((m, i) => (
+                  <div key={i} className="col col--4" style={{marginBottom: '1rem'}}>
+                    <Link to={m.to} style={{textDecoration: 'none', color: 'inherit'}}>
+                      <div className="feature-card" style={{display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem'}}>
+                        <span style={{
+                          fontSize: '1.5rem', fontWeight: 800, opacity: 0.3,
+                          minWidth: '2rem', textAlign: 'center'
+                        }}>{m.num}</span>
+                        <div>
+                          <strong>{m.title}</strong>
+                          <br />
+                          <span style={{fontSize: '0.85rem', opacity: 0.7}}>{m.desc}</span>
                         </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </TabItem>
-            </Tabs>
-          </div>
-        </section>
-
-        {/* Quick start with tabs */}
-        <section className="container padding-vert--xl">
-          <h2 style={{textAlign: 'center'}}>Quick Start</h2>
-          <div style={{maxWidth: 750, margin: '0 auto'}}>
-            <Tabs>
-              <TabItem value="admin" label="Admin Setup" default>
-                <pre style={{borderRadius: 12, padding: '1.5rem'}}>
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </TabItem>
+            <TabItem value="quickstart" label="Quick Start">
+              <div style={{maxWidth: 750, margin: '1rem auto 0'}}>
+                <Tabs>
+                  <TabItem value="admin" label="Admin Setup" default>
+                    <pre style={{borderRadius: 12, padding: '1.5rem'}}>
 {`# Enable KubeRay in RHOAI
 oc patch datasciencecluster default-dsc --type='merge' \\
   -p '{"spec":{"components":{"ray":{"managementState":"Managed"},
@@ -163,10 +156,10 @@ oc patch datasciencecluster default-dsc --type='merge' \\
 # Apply Kueue resources + create namespace
 oc apply -k manifests/platform/
 oc apply -k manifests/base/`}
-                </pre>
-              </TabItem>
-              <TabItem value="deploy" label="Deploy + Test">
-                <pre style={{borderRadius: 12, padding: '1.5rem'}}>
+                    </pre>
+                  </TabItem>
+                  <TabItem value="deploy" label="Deploy + Test">
+                    <pre style={{borderRadius: 12, padding: '1.5rem'}}>
 {`# Deploy a RayCluster
 oc apply -k manifests/raycluster/
 ./scripts/fix-auth.sh ray-demo demo-cluster
@@ -176,10 +169,10 @@ oc apply -k manifests/raycluster/
 
 # Run an example (CPU)
 oc apply -f manifests/examples/rayjob-pi-estimation.yaml`}
-                </pre>
-              </TabItem>
-              <TabItem value="sdk" label="CodeFlare SDK">
-                <pre style={{borderRadius: 12, padding: '1.5rem'}}>
+                    </pre>
+                  </TabItem>
+                  <TabItem value="sdk" label="CodeFlare SDK">
+                    <pre style={{borderRadius: 12, padding: '1.5rem'}}>
 {`from codeflare_sdk import Cluster, ClusterConfiguration
 
 cluster = Cluster(ClusterConfiguration(
@@ -190,10 +183,12 @@ cluster = Cluster(ClusterConfiguration(
 ))
 cluster.apply()
 cluster.wait_ready()  # admin: run fix-auth.sh first`}
-                </pre>
-              </TabItem>
-            </Tabs>
-          </div>
+                    </pre>
+                  </TabItem>
+                </Tabs>
+              </div>
+            </TabItem>
+          </Tabs>
         </section>
       </main>
     </Layout>
