@@ -99,7 +99,7 @@ The component stack:
 | Component | What it does | How RHOAI manages it |
 |-----------|-------------|---------------------|
 | **KubeRay Operator** | Reconciles RayCluster, RayJob, RayService CRDs into pods, services, and network policies | Deployed when `ray: Managed` in the DataScienceCluster |
-| **Red Hat build of Kueue** | Provides quota-aware admission -- holds workloads in a queue until resources are available | External operator; RHOAI sets `kueue: Unmanaged` to integrate |
+| **Red Hat build of Kueue** | The resource traffic controller. Without it, GPU clusters start first-come-first-served and idle GPUs are wasted. With it, teams get **self-service access** with quotas, priorities, and automatic borrowing/preemption -- turning a shared cluster from a manual ticketing system into an automated platform. See [Module 3](03-platform-setup) for the full real-world scenario. | External operator; RHOAI sets `kueue: Unmanaged` to integrate |
 | **cert-manager** | Generates and rotates TLS certificates for mTLS between Ray nodes | Standalone operator; KubeRay creates Certificate CRs automatically |
 | **CodeFlare SDK** | Python library for data scientists to create clusters and submit jobs | Pre-installed in RHOAI workbench notebook images |
 

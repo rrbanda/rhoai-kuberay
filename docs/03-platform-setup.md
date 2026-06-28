@@ -150,6 +150,86 @@ flowchart TB
 
 > **Source:** Resource model based on [Figure 2 from Red Hat Developer -- Tame Ray workloads with KubeRay and Kueue](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue)
 
+## Concept: Why Kueue Matters -- A Real-World Scenario
+
+To understand why Kueue is essential, consider what happens without it and how it transforms a shared GPU cluster.
+
+### Without Kueue: The Manual Gatekeeper
+
+On a standard Kubernetes cluster with KubeRay but no Kueue, someone must manually control who gets GPUs:
+
+- **Admin as bottleneck:** Every cluster request requires a ticket. The admin is a human queue.
+- **GPU idle waste:** A data scientist finishes at 3 PM but forgets to delete the cluster. A 2-GPU cluster at $3-10/hr sits idle for five hours. Multiply by a whole team.
+- **Resource hoarding:** Scientists know the request process is slow. They keep clusters "just in case," even when idle.
+- **Zero borrowing:** 12 GPUs reserved for a nightly production job sit 100% idle for 16 hours/day. No mechanism to lend them to R&D.
+
+### With Kueue: The Automated Platform
+
+The admin configures policies **once**. The platform becomes fully self-service:
+
+```mermaid
+flowchart TB
+    subgraph cohort [Cohort: all-gpus]
+        subgraph cqDev ["ClusterQueue: dev (8 GPU quota)"]
+            DevUsed["3/3 GPUs used + borrowing"]
+        end
+        subgraph cqProd ["ClusterQueue: prod (12 GPU quota)"]
+            ProdUsed["6/6 GPUs used"]
+        end
+        cqDev <-->|"can borrow from each other"| cqProd
+    end
+
+    subgraph nsRD [Namespace: rd-team]
+        lqRD["LocalQueue: lq-rd-workspaces"]
+        RC1["RayCluster 1"]
+        RC2["RayCluster 2"]
+        RC3["RayCluster 3"]
+    end
+
+    subgraph nsProd [Namespace: ci-nightly]
+        lqProd["LocalQueue: lq-prod-jobs"]
+        ProdJob["RayJob: nightly-training"]
+    end
+
+    DevPri["dev-priority: 100"]
+    ProdPri["prod-priority: 1000"]
+
+    RC1 --> lqRD
+    RC2 --> lqRD
+    RC3 --> lqRD
+    ProdJob --> lqProd
+    lqRD -->|"queues workloads"| cqDev
+    lqProd -->|"queues workloads"| cqProd
+```
+
+> **Source:** Architecture based on [Figure 2 from Red Hat Developer -- Tame Ray workloads with KubeRay and Kueue](https://developers.redhat.com/articles/2025/12/03/tame-ray-workloads-openshift-ai-kuberay-and-kueue) by Laura Fitzgerald, Bryan Keane, and Pat O'Connor.
+
+Key concepts in this diagram:
+
+| Concept | What it does |
+|---------|-------------|
+| **Cohort** | Groups ClusterQueues together so they can **borrow** unused quota from each other. Dev borrows from idle prod GPUs during the day. |
+| **WorkloadPriorityClass** | Assigns importance to workloads. `prod-priority: 1000` outranks `dev-priority: 100`. Higher priority workloads can **preempt** lower ones. |
+| **reclaimWithinCohort** | When a high-priority workload arrives and its quota is borrowed, Kueue **cleanly preempts** the borrowing workloads (suspends RayClusters, removes pods gracefully). |
+
+### The Scenario: How It Plays Out
+
+**1 PM -- R&D self-service:**
+A data scientist runs `cluster.apply()`. No ticket needed. Kueue checks the 8-GPU dev quota, sees capacity, and admits instantly. Two more scientists do the same. Kueue admits all three using dev's GPUs plus **borrowing** 4 GPUs from idle production quota. All resources are 100% utilized.
+
+**8 PM -- Production job arrives:**
+A CI/CD pipeline submits a high-priority RayJob. Kueue sees `prod-priority: 1000`, checks production's 12-GPU quota (currently borrowed by R&D), and triggers **preemption**. It cleanly suspends the R&D clusters using the borrowed GPUs, frees the resources, and admits the production job. Zero manual intervention.
+
+**Next morning -- Automatic recovery:**
+The production job finishes. Because it's an ephemeral RayJob with `shutdownAfterJobFinishes: true`, the cluster is deleted and GPUs return to the queue. Kueue **un-suspends** the preempted R&D clusters automatically. Data scientists arrive and their clusters are already back.
+
+:::tip What this solves
+- **Idle waste:** Ephemeral clusters delete automatically. No forgotten GPU bills.
+- **Resource hoarding:** Preemption means hoarding is pointless -- high-priority jobs take what they need.
+- **Borrowing:** Every GPU does useful work all day. Dev uses prod's GPUs during the day; prod reclaims them at night.
+- **Admin bottleneck:** The admin designs policies. The platform enforces them. No tickets.
+:::
+
 ## Concept: Kueue Admission Flow
 
 :::warning Required label for all workloads
