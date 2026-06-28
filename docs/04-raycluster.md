@@ -131,7 +131,7 @@ RHOAI 3.4.1 has a known issue where pods never start because the `Authentication
 :::info What this script does
 1. Reads `metadata.generation` from the RayCluster (e.g., `2`)
 2. Patches the status subresource to add `AuthenticationReady: True` with `observedGeneration: 2`
-3. Creates the `kube-rbac-proxy-config-demo-cluster` ConfigMap (needed for the head pod sidecar)
+3. Creates the `kube-rbac-proxy-config-<name>` ConfigMap if it does not exist (for `demo-cluster`, the manifest already creates it; for RayJob child clusters with dynamic names, this step is essential)
 :::
 
 ## Step 3: Verify
@@ -231,11 +231,21 @@ This renders interactive controls inside your notebook. Click **Open Ray Dashboa
 
 If the gateway route is not working (see known issue [RHAIENG-1795](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/release_notes/known-issues_relnotes)), you can port-forward directly:
 
+Port-forward directly to the **pod** (bypassing the kube-rbac-proxy service):
+
 ```bash
-oc port-forward svc/demo-cluster-head-svc -n ray-demo 8265:8265
+HEAD_POD=$(oc get pods -n ray-demo -l ray.io/node-type=head -o name | head -1)
+oc port-forward "$HEAD_POD" -n ray-demo 8265:8265
 ```
 
 Open http://localhost:8265.
+
+:::info Authentication
+If you get a 401 Unauthorized, the kube-rbac-proxy sidecar is intercepting. You can authenticate with a bearer token:
+```bash
+curl -H "Authorization: Bearer $(oc whoami -t)" http://localhost:8265/api/version
+```
+:::
 
 :::warning Known Issue: RHAIENG-1795
 The RHOAI 3.4 release notes document that the Ray Dashboard Gateway route **may not respond correctly** when the cluster is created through CodeFlare. If the gateway URL returns errors or hangs, use port-forwarding as a fallback. This is expected to be fixed in a future RHOAI release.

@@ -30,19 +30,23 @@ fi
 echo "KubeRay operator is running."
 echo ""
 
-echo "--- Step 1: Create namespace and Kueue queue ---"
+echo "--- Step 1: Apply Kueue resources (ClusterQueue + ResourceFlavor) ---"
+oc apply -k "$REPO_ROOT/manifests/platform/" 2>/dev/null && echo "  Kueue resources applied" || echo "  Kueue resources already exist"
+echo ""
+
+echo "--- Step 2: Create namespace and LocalQueue ---"
 oc apply -k "$REPO_ROOT/manifests/base/"
 echo ""
 
-echo "--- Step 2: Deploy RayCluster ---"
+echo "--- Step 3: Deploy RayCluster ---"
 oc apply -k "$REPO_ROOT/manifests/raycluster/"
 echo ""
 
-echo "--- Step 3: Apply AuthenticationReady workaround ---"
+echo "--- Step 4: Apply AuthenticationReady workaround ---"
 "$SCRIPT_DIR/fix-auth.sh" ray-demo demo-cluster
 echo ""
 
-echo "--- Step 4: Wait for cluster to be ready ---"
+echo "--- Step 5: Wait for cluster to be ready ---"
 echo "Waiting for pods..."
 for i in $(seq 1 30); do
   STATE=$(oc get raycluster demo-cluster -n ray-demo -o jsonpath='{.status.state}' 2>/dev/null)
@@ -62,7 +66,7 @@ for i in $(seq 1 30); do
 done
 echo ""
 
-echo "--- Step 5: Validate ---"
+echo "--- Step 6: Validate ---"
 "$SCRIPT_DIR/test-cluster.sh" ray-demo demo-cluster
 echo ""
 
@@ -73,5 +77,10 @@ echo ""
 echo "Next steps:"
 echo "  - View pods:     oc get pods -n ray-demo"
 echo "  - View cluster:  oc get raycluster -n ray-demo"
-echo "  - Dashboard:     oc port-forward svc/demo-cluster-head-svc -n ray-demo 8265:8265"
+DOMAIN=$(oc get gatewayconfigs.services.platform.opendatahub.io default-gateway -o jsonpath='{.status.domain}' 2>/dev/null)
+if [ -n "$DOMAIN" ]; then
+  echo "  - Dashboard:     https://$DOMAIN/ray/ray-demo/demo-cluster/"
+else
+  echo "  - Dashboard:     oc port-forward svc/demo-cluster-head-svc -n ray-demo 8265:8265"
+fi
 echo "  - Clean up:      ./scripts/cleanup.sh ray-demo"

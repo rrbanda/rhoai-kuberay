@@ -44,6 +44,7 @@ Visit the [full workshop site](https://rrbanda.github.io/rhoai-kuberay/) for the
 | [05 - RayJob](https://rrbanda.github.io/rhoai-kuberay/docs/05-rayjob) | Submit ephemeral and existing-cluster jobs | Admin / DS |
 | [06 - CodeFlare SDK](https://rrbanda.github.io/rhoai-kuberay/docs/06-codeflare-sdk) | Python SDK workflows from Jupyter notebooks | Data Scientist |
 | [07 - Troubleshooting](https://rrbanda.github.io/rhoai-kuberay/docs/07-troubleshooting) | Known issues, workarounds, recovery procedures | Admin |
+| [08 - Examples](https://rrbanda.github.io/rhoai-kuberay/docs/08-examples) | CPU + GPU working demo examples | Everyone |
 
 ## Repository Structure
 

@@ -24,14 +24,18 @@ A `RayJob` is a Kubernetes custom resource that combines **cluster lifecycle** w
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Suspended: Created
-    Suspended --> Initializing: Kueue admits
+    [*] --> Created: RayJob applied
+    Created --> Initializing: Kueue sets suspend=false
     Initializing --> Running: Cluster ready
     Running --> Succeeded: Job completes
     Running --> Failed: Job errors
     Succeeded --> [*]: TTL cleanup
     Failed --> [*]: TTL cleanup
 ```
+
+:::info suspend vs status
+The initial `Created` state corresponds to `spec.suspend: true` (set by Kueue). This is a **spec field**, not a KubeRay job status. The actual job status fields are `jobStatus` (RUNNING/SUCCEEDED/FAILED) and `jobDeploymentStatus` (Initializing/Running/Complete).
+:::
 
 ## Concept: Submission Modes
 

@@ -37,6 +37,17 @@ The GPU examples download dependencies at runtime:
 Ensure your cluster has egress access to `pypi.org`, `download.pytorch.org`, and `huggingface.co`. For air-gapped clusters, use custom images with dependencies pre-baked.
 :::
 
+### GPU Example Prerequisites
+
+The GPU examples (CIFAR-10, Batch Inference) require additional setup beyond the base workshop:
+
+- **NVIDIA GPU Operator** installed with Node Feature Discovery
+- At least one GPU node with the `nvidia.com/gpu=True:NoSchedule` taint
+- The `gpu-flavor` ResourceFlavor configured in your ClusterQueue with GPU quota (e.g., `nvidia.com/gpu: 1`)
+- **Network egress** to `pypi.org`, `download.pytorch.org`, and `huggingface.co` for runtime dependency downloads
+
+If your cluster has no GPU nodes, skip to the CPU examples tab -- they work on any cluster.
+
 ## How to Run Each Example
 
 All examples follow the same pattern:

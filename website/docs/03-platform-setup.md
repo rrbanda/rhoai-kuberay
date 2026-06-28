@@ -181,7 +181,9 @@ sequenceDiagram
 
 This is why every RayCluster you create initially shows `suspend: true` -- Kueue is holding it until admission.
 
-## Step 2: Configure Kueue Resources
+### Understanding the Kueue Resources
+
+The `oc apply -k manifests/platform/` command above created these resources:
 
 ### ResourceFlavor
 

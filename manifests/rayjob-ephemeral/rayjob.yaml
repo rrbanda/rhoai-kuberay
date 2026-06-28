@@ -48,8 +48,6 @@ spec:
                   memory: "2Gi"
     workerGroupSpecs:
       - replicas: 1
-        minReplicas: 1
-        maxReplicas: 2
         groupName: workers
         rayStartParams: {}
         template:

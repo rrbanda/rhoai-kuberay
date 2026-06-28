@@ -93,7 +93,7 @@ cluster = Cluster(
         namespace="ray-demo",
         num_workers=2,
         worker_cpu_requests=1,
-        worker_memory_requests=4,
+        worker_memory_requests=2,
         image="quay.io/modh/ray:2.47.1-py311-cu121",
         local_queue="default",
     )
@@ -192,6 +192,7 @@ from codeflare_sdk import RayJob, ManagedClusterConfig
 
 production_job = RayJob(
     job_name="training-run",
+    namespace="ray-demo",
     local_queue="default",
     cluster_config=ManagedClusterConfig(
         num_workers=2,
@@ -259,7 +260,8 @@ view_clusters("another-project")
 The Ray Dashboard Gateway route may not respond correctly when the cluster was created through CodeFlare. If the "Open Ray Dashboard" button does not work, use port-forwarding as a fallback:
 
 ```bash
-oc port-forward svc/<cluster-name>-head-svc -n <namespace> 8265:8265
+HEAD_POD=$(oc get pods -n <namespace> -l ray.io/node-type=head -o name | head -1)
+oc port-forward "$HEAD_POD" -n <namespace> 8265:8265
 ```
 
 Then open http://localhost:8265. See [Module 7 -- Troubleshooting](07-troubleshooting) for details.

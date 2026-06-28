@@ -16,7 +16,6 @@ spec:
     python -c "
     import ray
     import os
-    import requests
 
     ray.init()
 
@@ -32,13 +31,18 @@ spec:
         def get_counter(self):
             return '{} got {}'.format(self.name, self.counter)
 
+        def check_requests(self):
+            import requests
+            return requests.__version__
+
     counter = Counter.remote()
 
     for _ in range(5):
         ray.get(counter.inc.remote())
         print(ray.get(counter.get_counter.remote()))
 
-    print(f'requests library version: {requests.__version__}')
+    ver = ray.get(counter.check_requests.remote())
+    print(f'requests library version: {ver}')
     print('SUCCESS: Actor counter with runtime_env completed!')
     "
   rayClusterSpec:
