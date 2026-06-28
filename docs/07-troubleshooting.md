@@ -164,8 +164,11 @@ oc get mutatingwebhookconfigurations kuberay-mutating-webhook-configuration -o j
 #    WHY: the finalizer blocks deletion. The auth controller would normally
 #    remove it during cleanup, but it cannot run while the operator is down.
 oc get raycluster -n <namespace> --no-headers -o name | \
-  xargs -r -I{} oc patch {} -n <namespace> --type=json \
-  -p='[{"op":"replace","path":"/metadata/finalizers","value":[]}]'
+  while IFS= read -r rc; do
+    [ -z "$rc" ] && continue
+    oc patch "$rc" -n <namespace> --type=json \
+      -p='[{"op":"replace","path":"/metadata/finalizers","value":[]}]'
+  done
 
 # 3. Delete the stuck resources
 oc delete raycluster --all -n <namespace> --wait=false
@@ -173,7 +176,10 @@ oc delete raycluster --all -n <namespace> --wait=false
 # 4. Clean dead operator pods
 oc get pods -n redhat-ods-applications --no-headers | \
   grep kuberay | grep -v Running | awk '{print $1}' | \
-  xargs -r oc delete pod -n redhat-ods-applications --force --grace-period=0
+  while IFS= read -r pod; do
+    [ -z "$pod" ] && continue
+    oc delete pod "$pod" -n redhat-ods-applications --force --grace-period=0
+  done
 
 # 5. CRITICAL: Restore the webhook
 #    WHY: leaving it on Ignore disables admission validation for all RayClusters.

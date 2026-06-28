@@ -31,7 +31,10 @@ echo "KubeRay operator is running."
 echo ""
 
 echo "--- Step 1: Apply Kueue resources (ClusterQueue + ResourceFlavor) ---"
-oc apply -k "$REPO_ROOT/manifests/platform/" 2>/dev/null && echo "  Kueue resources applied" || echo "  Kueue resources already exist"
+if ! oc apply -k "$REPO_ROOT/manifests/platform/"; then
+  echo "WARNING: Failed to apply Kueue resources. They may already exist or require admin privileges."
+  echo "Check: oc get clusterqueues && oc get resourceflavors"
+fi
 echo ""
 
 echo "--- Step 2: Create namespace and LocalQueue ---"
@@ -79,8 +82,9 @@ echo "  - View pods:     oc get pods -n ray-demo"
 echo "  - View cluster:  oc get raycluster -n ray-demo"
 DOMAIN=$(oc get gatewayconfigs.services.platform.opendatahub.io default-gateway -o jsonpath='{.status.domain}' 2>/dev/null)
 if [ -n "$DOMAIN" ]; then
-  echo "  - Dashboard:     https://$DOMAIN/ray/ray-demo/demo-cluster/"
+  echo "  - Dashboard:     https://${DOMAIN}/ray/ray-demo/demo-cluster/"
 else
-  echo "  - Dashboard:     oc port-forward svc/demo-cluster-head-svc -n ray-demo 8265:8265"
+  HEAD_POD=$(oc get pods -n ray-demo -l ray.io/cluster=demo-cluster,ray.io/node-type=head -o name 2>/dev/null | head -1)
+  echo "  - Dashboard:     oc port-forward $HEAD_POD -n ray-demo 8265:8265"
 fi
 echo "  - Clean up:      ./scripts/cleanup.sh ray-demo"

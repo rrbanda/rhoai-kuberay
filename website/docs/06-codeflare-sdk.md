@@ -119,7 +119,7 @@ from codeflare_sdk import Cluster, ClusterConfiguration
 
 cluster = Cluster(
     ClusterConfiguration(
-        name="my-workspace",
+        name="demo-cluster",
         namespace="ray-demo",
         num_workers=2,
         worker_cpu_requests=1,
@@ -130,6 +130,11 @@ cluster = Cluster(
 )
 
 cluster.apply()
+```
+
+**STOP:** On RHOAI 3.4.1, an admin must run `./scripts/fix-auth.sh ray-demo demo-cluster` before proceeding.
+
+```python
 cluster.wait_ready()
 cluster.details()
 ```
@@ -189,7 +194,7 @@ from codeflare_sdk import RayJob
 quick_job = RayJob(
     job_name="quick-dev-test",
     entrypoint="python test_model.py",
-    cluster_name="my-workspace",
+    cluster_name="demo-cluster",
     namespace="ray-demo",
     runtime_env={
         "working_dir": ".",

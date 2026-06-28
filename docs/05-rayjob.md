@@ -175,7 +175,7 @@ oc apply -k manifests/rayjob-existing/
 
 The child RayCluster cannot start. Common causes:
 
-1. **AuthenticationReady** not set -- run `./scripts/fix-auth.sh`
+1. **AuthenticationReady** not set -- run `./scripts/fix-auth.sh ray-demo <child-cluster-name>`
 2. **Insufficient resources** -- check `oc describe pod` for scheduling errors
 3. **Image pull errors** -- verify the image tag exists
 

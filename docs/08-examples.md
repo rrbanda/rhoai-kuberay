@@ -91,7 +91,7 @@ oc apply -f manifests/examples/rayjob-pi-estimation.yaml
 - Each task counts points inside the unit circle
 - Aggregates results to estimate Pi
 
-**Expected output:**
+**Sample output** (your values will differ due to random sampling):
 
 ```
 Estimating Pi with 10,000,000 samples across 10 tasks...
@@ -156,7 +156,7 @@ oc apply -f manifests/examples/rayjob-pytorch-cifar10.yaml
 - Trains a simple CNN for 3 epochs with Adam optimizer
 - Reports per-epoch loss and accuracy
 
-**Expected output:**
+**Sample output** (your values will differ due to training stochasticity):
 
 ```
 GPU available: True
@@ -194,7 +194,7 @@ oc apply -f manifests/examples/rayjob-batch-inference.yaml
 - Processes images in batches of 8 using `ray.data.map_batches`
 - Returns predicted labels and confidence scores
 
-**Expected output:**
+**Sample output** (your values will differ -- random images produce random labels):
 
 ```
 Creating synthetic image dataset...

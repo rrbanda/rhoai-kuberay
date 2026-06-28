@@ -151,7 +151,9 @@ export default function Home() {
 {`# Enable KubeRay in RHOAI
 oc patch datasciencecluster default-dsc --type='merge' \\
   -p '{"spec":{"components":{"ray":{"managementState":"Managed"},
-  "kueue":{"managementState":"Unmanaged"}}}}'
+  "kueue":{"managementState":"Unmanaged",
+  "defaultClusterQueueName":"default",
+  "defaultLocalQueueName":"default"}}}}'
 
 # Apply Kueue resources + create namespace
 oc apply -k manifests/platform/
@@ -168,7 +170,11 @@ oc apply -k manifests/raycluster/
 ./scripts/test-cluster.sh ray-demo demo-cluster
 
 # Run an example (CPU)
-oc apply -f manifests/examples/rayjob-pi-estimation.yaml`}
+oc apply -f manifests/examples/rayjob-pi-estimation.yaml
+# Fix auth on child cluster (RHOAI 3.4.1):
+CHILD=$(oc get rayjob rayjob-pi-estimation -n ray-demo \\
+  -o jsonpath='{.status.rayClusterName}')
+./scripts/fix-auth.sh ray-demo "$CHILD"`}
                     </pre>
                   </TabItem>
                   <TabItem value="sdk" label="CodeFlare SDK">
@@ -176,13 +182,15 @@ oc apply -f manifests/examples/rayjob-pi-estimation.yaml`}
 {`from codeflare_sdk import Cluster, ClusterConfiguration
 
 cluster = Cluster(ClusterConfiguration(
-    name="my-workspace",
+    name="demo-cluster",
+    namespace="ray-demo",
     num_workers=2,
     image="quay.io/modh/ray:2.47.1-py311-cu121",
     local_queue="default",
 ))
 cluster.apply()
-cluster.wait_ready()  # admin: run fix-auth.sh first`}
+# STOP: Admin must run fix-auth.sh first on RHOAI 3.4.1
+cluster.wait_ready()`}
                     </pre>
                   </TabItem>
                 </Tabs>
