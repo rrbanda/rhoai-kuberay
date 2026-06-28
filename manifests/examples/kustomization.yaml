@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - rayjob-pi-estimation.yaml
+  - rayjob-counter-actor.yaml
+  - rayjob-pytorch-cifar10.yaml
+  - rayjob-batch-inference.yaml

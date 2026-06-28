@@ -1,0 +1,78 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: rayjob-pi-estimation
+  namespace: ray-demo
+  labels:
+    kueue.x-k8s.io/queue-name: default
+spec:
+  submissionMode: K8sJobMode
+  shutdownAfterJobFinishes: true
+  ttlSecondsAfterFinished: 600
+  entrypoint: |
+    python -c "
+    import ray
+    import random
+
+    ray.init()
+
+    @ray.remote
+    def sample(num_samples):
+        count = 0
+        for _ in range(num_samples):
+            x, y = random.random(), random.random()
+            if x*x + y*y <= 1:
+                count += 1
+        return count
+
+    NUM_SAMPLES = 10_000_000
+    NUM_TASKS = 10
+    samples_per_task = NUM_SAMPLES // NUM_TASKS
+
+    print(f'Estimating Pi with {NUM_SAMPLES:,} samples across {NUM_TASKS} tasks...')
+
+    futures = [sample.remote(samples_per_task) for _ in range(NUM_TASKS)]
+    results = ray.get(futures)
+    total_inside = sum(results)
+    pi_estimate = 4.0 * total_inside / NUM_SAMPLES
+
+    print(f'Results per task: {results}')
+    print(f'Total inside circle: {total_inside:,} / {NUM_SAMPLES:,}')
+    print(f'Pi estimate: {pi_estimate:.6f}')
+    print(f'Error: {abs(pi_estimate - 3.14159265):,.8f}')
+    print('SUCCESS: Pi estimation completed!')
+    "
+  rayClusterSpec:
+    rayVersion: '2.47.1'
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+        num-cpus: '0'
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: quay.io/modh/ray:2.47.1-py311-cu121
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: "4Gi"
+                requests:
+                  cpu: "100m"
+                  memory: "2Gi"
+    workerGroupSpecs:
+      - replicas: 2
+        groupName: workers
+        rayStartParams: {}
+        template:
+          spec:
+            containers:
+              - name: ray-worker
+                image: quay.io/modh/ray:2.47.1-py311-cu121
+                resources:
+                  limits:
+                    cpu: "1"
+                    memory: "2Gi"
+                  requests:
+                    cpu: "100m"
+                    memory: "1Gi"

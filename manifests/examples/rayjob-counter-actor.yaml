@@ -1,0 +1,77 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: rayjob-counter-actor
+  namespace: ray-demo
+  labels:
+    kueue.x-k8s.io/queue-name: default
+spec:
+  submissionMode: K8sJobMode
+  shutdownAfterJobFinishes: true
+  ttlSecondsAfterFinished: 600
+  runtimeEnvYAML: |
+    pip:
+      - requests==2.31.0
+  entrypoint: |
+    python -c "
+    import ray
+    import os
+    import requests
+
+    ray.init()
+
+    @ray.remote
+    class Counter:
+        def __init__(self):
+            self.name = os.getenv('counter_name', 'demo_counter')
+            self.counter = 0
+
+        def inc(self):
+            self.counter += 1
+
+        def get_counter(self):
+            return '{} got {}'.format(self.name, self.counter)
+
+    counter = Counter.remote()
+
+    for _ in range(5):
+        ray.get(counter.inc.remote())
+        print(ray.get(counter.get_counter.remote()))
+
+    print(f'requests library version: {requests.__version__}')
+    print('SUCCESS: Actor counter with runtime_env completed!')
+    "
+  rayClusterSpec:
+    rayVersion: '2.47.1'
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+        num-cpus: '0'
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: quay.io/modh/ray:2.47.1-py311-cu121
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: "4Gi"
+                requests:
+                  cpu: "100m"
+                  memory: "2Gi"
+    workerGroupSpecs:
+      - replicas: 1
+        groupName: workers
+        rayStartParams: {}
+        template:
+          spec:
+            containers:
+              - name: ray-worker
+                image: quay.io/modh/ray:2.47.1-py311-cu121
+                resources:
+                  limits:
+                    cpu: "1"
+                    memory: "2Gi"
+                  requests:
+                    cpu: "100m"
+                    memory: "1Gi"

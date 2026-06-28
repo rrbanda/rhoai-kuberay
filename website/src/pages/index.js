@@ -86,6 +86,7 @@ const modules = [
   { num: '05', title: 'RayJob', desc: 'Ephemeral and existing-cluster', to: '/docs/05-rayjob' },
   { num: '06', title: 'CodeFlare SDK', desc: 'Python SDK from notebooks', to: '/docs/06-codeflare-sdk' },
   { num: '07', title: 'Troubleshooting', desc: 'Known issues, recovery', to: '/docs/07-troubleshooting' },
+  { num: '08', title: 'Examples', desc: 'CPU + GPU working demos', to: '/docs/08-examples' },
 ];
 
 export default function Home() {

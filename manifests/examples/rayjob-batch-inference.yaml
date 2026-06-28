@@ -1,0 +1,110 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: rayjob-batch-inference
+  namespace: ray-demo
+  labels:
+    kueue.x-k8s.io/queue-name: default
+spec:
+  submissionMode: K8sJobMode
+  shutdownAfterJobFinishes: true
+  ttlSecondsAfterFinished: 600
+  runtimeEnvYAML: |
+    pip:
+      - transformers>=4.30
+      - torch>=2.0
+      - Pillow
+      - numpy
+  entrypoint: |
+    python -c "
+    import ray
+    import numpy as np
+    from typing import Dict
+
+    ray.init()
+
+    print('Creating synthetic image dataset...')
+    ds = ray.data.from_items([
+        {'image': np.random.randint(0, 255, (224, 224, 3), dtype=np.uint8)}
+        for _ in range(32)
+    ])
+    print(f'Dataset: {ds.count()} images')
+
+    class ImageClassifier:
+        def __init__(self):
+            from transformers import pipeline
+            import torch
+            device = 0 if torch.cuda.is_available() else -1
+            self.classifier = pipeline(
+                'image-classification',
+                model='google/vit-base-patch16-224',
+                device=device
+            )
+            print(f'Model loaded on: {\"GPU\" if device == 0 else \"CPU\"}')
+
+        def __call__(self, batch: Dict[str, np.ndarray]):
+            from PIL import Image
+            images = [Image.fromarray(img) for img in batch['image']]
+            outputs = self.classifier(images, top_k=1, batch_size=8)
+            batch['label'] = [o[0]['label'] for o in outputs]
+            batch['score'] = [round(o[0]['score'], 4) for o in outputs]
+            return batch
+
+    print('Running batch inference with HuggingFace ViT...')
+    predictions = ds.map_batches(
+        ImageClassifier,
+        concurrency=1,
+        num_gpus=1,
+        batch_size=8
+    )
+
+    results = predictions.take(5)
+    print()
+    print('Sample predictions:')
+    for i, row in enumerate(results):
+        print(f'  Image {i}: {row[\"label\"]} (score: {row[\"score\"]})')
+
+    print()
+    print(f'Total processed: {predictions.count()} images')
+    print('SUCCESS: Batch inference with HuggingFace ViT completed!')
+    "
+  rayClusterSpec:
+    rayVersion: '2.47.1'
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+        num-cpus: '0'
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: quay.io/modh/ray:2.47.1-py311-cu121
+              resources:
+                limits:
+                  cpu: "2"
+                  memory: "8Gi"
+                requests:
+                  cpu: "100m"
+                  memory: "4Gi"
+    workerGroupSpecs:
+      - replicas: 1
+        groupName: gpu-workers
+        rayStartParams: {}
+        template:
+          spec:
+            tolerations:
+              - key: "nvidia.com/gpu"
+                operator: "Exists"
+                effect: "NoSchedule"
+            containers:
+              - name: ray-worker
+                image: quay.io/modh/ray:2.47.1-py311-cu121
+                resources:
+                  limits:
+                    cpu: "2"
+                    memory: "12Gi"
+                    nvidia.com/gpu: "1"
+                  requests:
+                    cpu: "500m"
+                    memory: "8Gi"
+                    nvidia.com/gpu: "1"
