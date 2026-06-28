@@ -3,6 +3,8 @@ import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 import styles from './index.module.css';
 
 function HomepageHeader() {
@@ -148,25 +150,51 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Quick start */}
+        {/* Quick start with tabs */}
         <section className="container padding-vert--xl">
           <h2 style={{textAlign: 'center'}}>Quick Start</h2>
-          <div style={{maxWidth: 700, margin: '0 auto'}}>
-            <pre style={{borderRadius: 12, padding: '1.5rem'}}>
-{`# 1. Enable KubeRay (admin)
+          <div style={{maxWidth: 750, margin: '0 auto'}}>
+            <Tabs>
+              <TabItem value="admin" label="Admin Setup" default>
+                <pre style={{borderRadius: 12, padding: '1.5rem'}}>
+{`# Enable KubeRay in RHOAI
 oc patch datasciencecluster default-dsc --type='merge' \\
   -p '{"spec":{"components":{"ray":{"managementState":"Managed"},
   "kueue":{"managementState":"Unmanaged"}}}}'
 
-# 2. Apply Kueue resources + create namespace
+# Apply Kueue resources + create namespace
 oc apply -k manifests/platform/
-oc apply -k manifests/base/
-
-# 3. Deploy and test
+oc apply -k manifests/base/`}
+                </pre>
+              </TabItem>
+              <TabItem value="deploy" label="Deploy + Test">
+                <pre style={{borderRadius: 12, padding: '1.5rem'}}>
+{`# Deploy a RayCluster
 oc apply -k manifests/raycluster/
 ./scripts/fix-auth.sh ray-demo demo-cluster
-./scripts/test-cluster.sh ray-demo demo-cluster`}
-            </pre>
+
+# Verify it works
+./scripts/test-cluster.sh ray-demo demo-cluster
+
+# Run an example (CPU)
+oc apply -f manifests/examples/rayjob-pi-estimation.yaml`}
+                </pre>
+              </TabItem>
+              <TabItem value="sdk" label="CodeFlare SDK">
+                <pre style={{borderRadius: 12, padding: '1.5rem'}}>
+{`from codeflare_sdk import Cluster, ClusterConfiguration
+
+cluster = Cluster(ClusterConfiguration(
+    name="my-workspace",
+    num_workers=2,
+    image="quay.io/modh/ray:2.47.1-py311-cu121",
+    local_queue="default",
+))
+cluster.apply()
+cluster.wait_ready()  # admin: run fix-auth.sh first`}
+                </pre>
+              </TabItem>
+            </Tabs>
           </div>
         </section>
       </main>

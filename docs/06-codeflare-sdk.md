@@ -4,6 +4,9 @@ slug: /06-codeflare-sdk
 title: "CodeFlare SDK"
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Module 6: CodeFlare SDK (Data Scientist Workflow)
 
 ## Learning Objectives
@@ -74,7 +77,10 @@ On RHOAI 3.4.1, clusters created via the CodeFlare SDK will hang at `cluster.wai
 Only after this will `cluster.wait_ready()` complete. This applies to all three workflows below. Ephemeral RayJobs also need the fix on the child cluster they create.
 :::
 
-## Workflow 1: Long-Running RayCluster
+<Tabs>
+<TabItem value="workspace" label="Workspace Cluster" default>
+
+## Long-Running RayCluster
 
 Create a persistent Ray cluster for interactive development:
 
@@ -140,7 +146,10 @@ ray.shutdown()
 cluster.down()  # deletes the RayCluster CR
 ```
 
-## Workflow 2: Quick-Iteration RayJob
+</TabItem>
+<TabItem value="quick" label="Quick-Iteration Job">
+
+## Quick-Iteration RayJob
 
 Submit a job to your existing workspace cluster -- no startup wait:
 
@@ -171,7 +180,10 @@ The `runtime_env` dictionary tells Ray to:
 This means your workers do not need your code pre-installed in the image.
 :::
 
-## Workflow 3: Ephemeral RayJob (Fire-and-Forget)
+</TabItem>
+<TabItem value="ephemeral" label="Ephemeral Job">
+
+## Ephemeral RayJob (Fire-and-Forget)
 
 Create a job that provisions its own cluster and tears it down after:
 
@@ -197,6 +209,9 @@ production_job = RayJob(
 
 production_job.submit()
 ```
+
+</TabItem>
+</Tabs>
 
 ## Using the Built-in Demo Notebooks
 

@@ -4,6 +4,9 @@ slug: /04-raycluster
 title: "RayCluster"
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Module 4: Deploying a RayCluster
 
 ## Learning Objectives
@@ -185,7 +188,8 @@ ray.shutdown()
 
 RHOAI automatically exposes the Ray dashboard through the **data-science-gateway** -- no port-forwarding required. The KubeRay authentication controller creates an `HTTPRoute` that routes traffic from the gateway to your cluster's dashboard.
 
-### Method 1: Gateway URL (Recommended)
+<Tabs>
+<TabItem value="gateway" label="Gateway URL (Recommended)" default>
 
 The dashboard is available at:
 
@@ -208,7 +212,8 @@ oc get gatewayconfigs.services.platform.opendatahub.io default-gateway \
 
 Authentication is handled by the gateway's `kube-auth-proxy` -- you log in with your OpenShift credentials.
 
-### Method 2: From a Jupyter Notebook
+</TabItem>
+<TabItem value="notebook" label="Jupyter Notebook">
 
 If you are working inside an RHOAI Workbench, the CodeFlare SDK provides a one-click "Open Ray Dashboard" button:
 
@@ -221,9 +226,10 @@ This renders interactive controls inside your notebook. Click **Open Ray Dashboa
 
 > **Official reference:** [RHOAI 3.4 -- Managing Ray clusters from within a Jupyter notebook](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/working_with_distributed_workloads/running-ray-based-distributed-workloads_distributed-workloads#managing-ray-clusters-from-within-a-jupyter-notebook_distributed-workloads)
 
-### Method 3: Port-Forward (Fallback)
+</TabItem>
+<TabItem value="portforward" label="Port-Forward (Fallback)">
 
-If the gateway route is not working (see known issue [RHAIENG-1795](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/release_notes/known-issues_relnotes) below), you can port-forward directly:
+If the gateway route is not working (see known issue [RHAIENG-1795](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4/html/release_notes/known-issues_relnotes)), you can port-forward directly:
 
 ```bash
 oc port-forward svc/demo-cluster-head-svc -n ray-demo 8265:8265
@@ -234,6 +240,9 @@ Open http://localhost:8265.
 :::warning Known Issue: RHAIENG-1795
 The RHOAI 3.4 release notes document that the Ray Dashboard Gateway route **may not respond correctly** when the cluster is created through CodeFlare. If the gateway URL returns errors or hangs, use port-forwarding as a fallback. This is expected to be fixed in a future RHOAI release.
 :::
+
+</TabItem>
+</Tabs>
 
 ### What the Dashboard Shows
 

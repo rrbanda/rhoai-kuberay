@@ -4,6 +4,9 @@ slug: /05-rayjob
 title: "RayJob"
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Module 5: Submitting RayJobs
 
 ## Learning Objectives
@@ -67,7 +70,10 @@ sequenceDiagram
     Note over K8sAPI: TTL cleanup after N seconds
 ```
 
-## Workflow 1: Ephemeral RayJob (Fire-and-Forget)
+<Tabs>
+<TabItem value="ephemeral" label="Ephemeral (Fire-and-Forget)" default>
+
+## Ephemeral RayJob
 
 This is the recommended pattern for batch workloads. The cluster is created for the job and destroyed after.
 
@@ -122,7 +128,10 @@ demo-rayjob-ephemeral   SUCCEEDED    Complete            demo-rayjob-eph-xxxxx  
 oc logs -n ray-demo -l batch.kubernetes.io/job-name --tail=20
 ```
 
-## Workflow 2: RayJob on Existing Cluster
+</TabItem>
+<TabItem value="existing" label="Existing Cluster">
+
+## RayJob on Existing Cluster
 
 Submit a job to a running RayCluster for fast iteration. No cluster startup latency.
 
@@ -152,6 +161,9 @@ oc apply -k manifests/rayjob-existing/
 - **Production batch?** Use ephemeral. Zero idle waste -- the cluster exists only while the job runs.
 - **Shared team cluster?** Use existing. Multiple data scientists submit jobs to the same workspace cluster.
 :::
+
+</TabItem>
+</Tabs>
 
 ## Troubleshooting RayJobs
 

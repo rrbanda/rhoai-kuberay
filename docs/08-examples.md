@@ -4,6 +4,9 @@ slug: /08-examples
 title: "Examples"
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Module 8: Working Examples
 
 This module provides ready-to-run examples that demonstrate real-world KubeRay use cases on RHOAI. Each example is a self-contained RayJob that creates an ephemeral cluster, runs the workload, and cleans up automatically.
@@ -57,6 +60,9 @@ oc delete rayjob <job-name> -n ray-demo
 ```
 
 ---
+
+<Tabs>
+<TabItem value="cpu" label="CPU Examples" default>
 
 ## 1. Distributed Pi Estimation
 
@@ -119,6 +125,9 @@ SUCCESS: Actor counter with runtime_env completed!
 **Source:** Adapted from [KubeRay official sample](https://github.com/ray-project/kuberay/blob/master/ray-operator/config/samples/ray-job.sample.yaml)
 
 ---
+
+</TabItem>
+<TabItem value="gpu" label="GPU Examples">
 
 ## 3. PyTorch CIFAR-10 Training
 
@@ -195,6 +204,9 @@ SUCCESS: Batch inference with HuggingFace ViT completed!
 
 ---
 
+</TabItem>
+<TabItem value="notebook" label="Notebook">
+
 ## 5. Ray Data Processing (Notebook)
 
 **Type:** CPU | **Difficulty:** Beginner | **Time:** Interactive
@@ -208,6 +220,9 @@ An interactive Jupyter notebook that demonstrates Ray Data processing from withi
 - Aggregate -- compute statistics across distributed data
 
 Upload the notebook to your RHOAI Workbench and follow the cells.
+
+</TabItem>
+</Tabs>
 
 ---
 
