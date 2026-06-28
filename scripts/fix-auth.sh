@@ -21,6 +21,10 @@ fix_cluster() {
     if oc get raycluster "$name" -n "$ns" &>/dev/null; then
       break
     fi
+    if [ "$i" -eq 30 ]; then
+      echo "  ERROR: RayCluster $name not found after 150s. Aborting."
+      exit 1
+    fi
     echo "  Waiting for RayCluster $name to exist ($i/30)..."
     sleep 5
   done

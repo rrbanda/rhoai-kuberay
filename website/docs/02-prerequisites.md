@@ -65,7 +65,7 @@ In the DataScienceCluster, Kueue must be set to `Unmanaged` (not `Managed`). The
 
 | Component | Tested Version | Notes |
 |-----------|---------------|-------|
-| OpenShift Container Platform | 4.18+ | Gateway API support required |
+| OpenShift Container Platform | 4.19+ | Required by RHOAI 3.4 ([supported configs](https://access.redhat.com/articles/rhoai-supported-configs-3.x)) |
 | Red Hat OpenShift AI | 3.4.1 | Manages KubeRay 1.4.2 |
 | KubeRay Operator | 1.4.2 | Deployed by RHOAI, not installed directly |
 | Red Hat build of Kueue | 1.2 | Standalone operator |

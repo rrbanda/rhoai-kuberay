@@ -24,7 +24,7 @@ cluster = Cluster(
         worker_cpu_requests=2,
         worker_memory_requests=8,
         image="quay.io/modh/ray:2.47.1-py311-cu121",
-        local_queue="local-queue-default",
+        local_queue="default",
     )
 )
 
@@ -99,7 +99,7 @@ from codeflare_sdk import RayJob, ManagedClusterConfig
 
 production_job = RayJob(
     job_name="training-run",
-    local_queue="local-queue-default",
+    local_queue="default",
     cluster_config=ManagedClusterConfig(
         num_workers=2,
         worker_cpu_requests=2,

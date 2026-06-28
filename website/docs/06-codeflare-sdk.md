@@ -78,7 +78,7 @@ cluster = Cluster(
         worker_cpu_requests=1,
         worker_memory_requests=4,
         image="quay.io/modh/ray:2.47.1-py311-cu121",
-        local_queue="local-queue-default",
+        local_queue="default",
     )
 )
 
@@ -169,12 +169,12 @@ from codeflare_sdk import RayJob, ManagedClusterConfig
 
 production_job = RayJob(
     job_name="training-run",
-    local_queue="local-queue-default",
+    local_queue="default",
     cluster_config=ManagedClusterConfig(
         num_workers=2,
-        worker_cpu_requests=2,
-        worker_cpu_limits=2,
-        worker_memory_requests=4,
+        worker_cpu_requests=1,
+        worker_cpu_limits=1,
+        worker_memory_requests=2,
         worker_memory_limits=4,
     ),
     entrypoint="python train_model.py",
@@ -200,10 +200,10 @@ This copies notebooks into `demo-notebooks/` in your workbench:
 
 | Notebook | What it teaches |
 |----------|----------------|
-| `0_basic_ray.ipynb` | Ray basics -- remote functions, actors |
-| `1_cluster_setup.ipynb` | Creating and configuring a RayCluster |
-| `2_basic_interactive.ipynb` | Interactive use with mTLS authentication |
+| `2_basic_interactive.ipynb` | Interactive use with mTLS authentication and cluster setup |
 | `3_widget_example.ipynb` | Interactive browser controls for cluster management |
+
+Additional demo notebooks may be available in the `additional-demos` folder. Run `copy_demo_nbs()` to see the full list for your SDK version.
 
 ## Managing Clusters from Notebooks
 

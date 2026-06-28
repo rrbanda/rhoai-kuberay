@@ -2,6 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - datasciencecluster-patch.yaml
+  # datasciencecluster-patch.yaml is a REFERENCE ONLY.
+  # Do NOT apply it via kustomize -- it would overwrite your existing DSC.
+  # Instead, use: oc patch datasciencecluster default-dsc --type=merge -p '...'
+  # See docs/03-platform-setup.md for the safe patch command.
   - resourceflavor.yaml
   - clusterqueue.yaml

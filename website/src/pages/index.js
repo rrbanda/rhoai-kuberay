@@ -81,7 +81,7 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              <tr><td>OpenShift Container Platform</td><td>4.18+</td></tr>
+              <tr><td>OpenShift Container Platform</td><td>4.19+</td></tr>
               <tr><td>Red Hat OpenShift AI</td><td>3.4.1</td></tr>
               <tr><td>KubeRay Operator</td><td>1.4.2 (RHOAI-managed)</td></tr>
               <tr><td>Red Hat build of Kueue</td><td>1.2</td></tr>

@@ -36,6 +36,11 @@ for i in $(seq 1 30); do
     echo "Cluster is READY!"
     break
   fi
+  if [ "$i" -eq 30 ]; then
+    echo "ERROR: Cluster did not reach 'ready' state after 5 minutes."
+    echo "Check: oc describe raycluster demo-cluster -n ray-demo"
+    exit 1
+  fi
   sleep 10
 done
 echo ""

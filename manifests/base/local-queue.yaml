@@ -1,7 +1,7 @@
 apiVersion: kueue.x-k8s.io/v1beta1
 kind: LocalQueue
 metadata:
-  name: local-queue-default
+  name: default
   namespace: ray-demo
   annotations:
     kueue.x-k8s.io/default-queue: "true"

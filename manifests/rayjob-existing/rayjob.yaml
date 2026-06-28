@@ -4,6 +4,7 @@ metadata:
   name: demo-rayjob-existing
   namespace: ray-demo
 spec:
+  suspend: false
   submissionMode: K8sJobMode
   shutdownAfterJobFinishes: false
   clusterSelector:

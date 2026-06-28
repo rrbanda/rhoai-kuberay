@@ -72,8 +72,10 @@ const config = {
             title: 'Workshop',
             items: [
               { label: 'Overview', to: '/docs/01-overview' },
+              { label: 'Prerequisites', to: '/docs/02-prerequisites' },
               { label: 'Platform Setup', to: '/docs/03-platform-setup' },
               { label: 'RayCluster', to: '/docs/04-raycluster' },
+              { label: 'Troubleshooting', to: '/docs/07-troubleshooting' },
             ],
           },
           {

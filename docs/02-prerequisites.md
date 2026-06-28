@@ -4,7 +4,7 @@
 
 | Requirement | Minimum |
 |-------------|---------|
-| OpenShift Container Platform | 4.18+ |
+| OpenShift Container Platform | 4.19+ |
 | Cluster admin access | Required for operator and Kueue configuration |
 | Worker nodes | 2+ (at least one with 2Gi+ free memory) |
 | GPU support (optional) | NVIDIA GPU Operator + Node Feature Discovery |

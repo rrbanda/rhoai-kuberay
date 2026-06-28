@@ -1,6 +1,6 @@
 # KubeRay on Red Hat OpenShift AI 3.4
 
-[![OpenShift](https://img.shields.io/badge/OpenShift-4.18%2B-red?logo=red-hat-open-shift)](https://docs.openshift.com/)
+[![OpenShift](https://img.shields.io/badge/OpenShift-4.19%2B-red?logo=red-hat-open-shift)](https://docs.openshift.com/)
 [![RHOAI](https://img.shields.io/badge/RHOAI-3.4.1-blue)](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.4)
 [![KubeRay](https://img.shields.io/badge/KubeRay-1.4.2-green)](https://github.com/ray-project/kuberay)
 [![Kueue](https://img.shields.io/badge/Kueue-1.2-orange)](https://kueue.sigs.k8s.io/)

@@ -43,6 +43,10 @@ flowchart TD
 
 ## Known Issue: AuthenticationReady (RHOAI 3.4.1)
 
+:::warning Unofficial workaround
+This root cause analysis and workaround are based on operational debugging, not official Red Hat documentation. The related official known issue is **RHOAIENG-1795** ("CodeFlare with Ray does not work with Gateway"), which as of RHOAI 3.4.1 has no official workaround. The fix below has been validated on a live RHOAI 3.4.1 cluster.
+:::
+
 ### Root Cause
 
 This is the most common issue. Here is what happens step by step:
