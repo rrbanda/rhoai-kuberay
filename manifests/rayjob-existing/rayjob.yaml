@@ -1,0 +1,27 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: demo-rayjob-existing
+  namespace: ray-demo
+spec:
+  submissionMode: K8sJobMode
+  shutdownAfterJobFinishes: false
+  clusterSelector:
+    ray.io/cluster: demo-cluster
+  entrypoint: |
+    python -c "
+    import ray
+    ray.init()
+    print('Cluster resources:', ray.cluster_resources())
+    print('Nodes:', len(ray.nodes()))
+
+    @ray.remote
+    def hello(x):
+        import socket
+        return f'Task {x} on {socket.gethostname()}'
+
+    results = ray.get([hello.remote(i) for i in range(4)])
+    for r in results:
+        print(r)
+    print('SUCCESS: RayJob on existing cluster completed!')
+    "

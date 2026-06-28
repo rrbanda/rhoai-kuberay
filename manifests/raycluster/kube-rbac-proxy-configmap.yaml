@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-rbac-proxy-config-demo-cluster
+  namespace: ray-demo
+data:
+  config.yaml: |
+    authorization:
+      resourceAttributes:
+        apiGroup: ray.io
+        apiVersion: v1
+        resource: rayclusters
+        name: demo-cluster
+        namespace: ray-demo

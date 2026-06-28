@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ray-demo
+  labels:
+    opendatahub.io/dashboard: "true"
+    kueue.openshift.io/managed: "true"

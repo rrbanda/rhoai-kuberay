@@ -1,0 +1,41 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: demo-cluster
+  namespace: ray-demo
+spec:
+  rayVersion: '2.47.1'
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+      num-cpus: '0'
+    template:
+      spec:
+        containers:
+          - name: ray-head
+            image: quay.io/modh/ray:2.47.1-py311-cu121
+            resources:
+              limits:
+                cpu: "1"
+                memory: "4Gi"
+              requests:
+                cpu: "100m"
+                memory: "2Gi"
+  workerGroupSpecs:
+    - replicas: 1
+      minReplicas: 1
+      maxReplicas: 4
+      groupName: workers
+      rayStartParams: {}
+      template:
+        spec:
+          containers:
+            - name: ray-worker
+              image: quay.io/modh/ray:2.47.1-py311-cu121
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: "4Gi"
+                requests:
+                  cpu: "100m"
+                  memory: "2Gi"
