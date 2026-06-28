@@ -112,41 +112,39 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Feature cards */}
+        {/* Workshop content - tabbed */}
         <section className={styles.features}>
           <div className="container">
-            <h2 style={{textAlign: 'center', marginBottom: '2rem'}}>What You Will Learn</h2>
-            <div className="row">
-              {features.map((props, idx) => (
-                <Feature key={idx} {...props} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Module list */}
-        <section className="section-alt">
-          <div className="container">
-            <h2 style={{textAlign: 'center', marginBottom: '2rem'}}>Workshop Modules</h2>
-            <div className="row">
-              {modules.map((m, i) => (
-                <div key={i} className="col col--4" style={{marginBottom: '1rem'}}>
-                  <Link to={m.to} style={{textDecoration: 'none', color: 'inherit'}}>
-                    <div className="feature-card" style={{display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem'}}>
-                      <span style={{
-                        fontSize: '1.5rem', fontWeight: 800, opacity: 0.3,
-                        minWidth: '2rem', textAlign: 'center'
-                      }}>{m.num}</span>
-                      <div>
-                        <strong>{m.title}</strong>
-                        <br />
-                        <span style={{fontSize: '0.85rem', opacity: 0.7}}>{m.desc}</span>
-                      </div>
-                    </div>
-                  </Link>
+            <Tabs>
+              <TabItem value="highlights" label="What You Will Learn" default>
+                <div className="row" style={{marginTop: '1rem'}}>
+                  {features.map((props, idx) => (
+                    <Feature key={idx} {...props} />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </TabItem>
+              <TabItem value="modules" label="All 8 Modules">
+                <div className="row" style={{marginTop: '1rem'}}>
+                  {modules.map((m, i) => (
+                    <div key={i} className="col col--4" style={{marginBottom: '1rem'}}>
+                      <Link to={m.to} style={{textDecoration: 'none', color: 'inherit'}}>
+                        <div className="feature-card" style={{display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem'}}>
+                          <span style={{
+                            fontSize: '1.5rem', fontWeight: 800, opacity: 0.3,
+                            minWidth: '2rem', textAlign: 'center'
+                          }}>{m.num}</span>
+                          <div>
+                            <strong>{m.title}</strong>
+                            <br />
+                            <span style={{fontSize: '0.85rem', opacity: 0.7}}>{m.desc}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </TabItem>
+            </Tabs>
           </div>
         </section>
 
