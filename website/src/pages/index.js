@@ -98,7 +98,7 @@ export default function Home() {
       <HomepageHeader />
       <main>
         {/* Version badges - tight under hero */}
-        <section className="container" style={{textAlign: 'center', padding: '0.5rem 0 0', marginTop: '-1.5rem'}}>
+        <section className="container" style={{textAlign: 'center', padding: '0.75rem 0 0'}}>
           <div className="version-badges" style={{marginBottom: '0.25rem'}}>
             {versions.map((v, i) => (
               <span key={i} className="version-badge">
