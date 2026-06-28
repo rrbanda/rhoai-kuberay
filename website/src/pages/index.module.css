@@ -1,8 +1,16 @@
 .heroBanner {
-  padding: 4rem 0;
+  padding: 5rem 0;
   text-align: center;
   position: relative;
   overflow: hidden;
+}
+
+.heroEyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
 }
 
 .buttons {
@@ -10,11 +18,20 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
+  margin-top: 1.5rem;
 }
 
 .features {
-  display: flex;
-  align-items: center;
-  padding: 2rem 0;
-  width: 100%;
+  padding: 3rem 0;
+}
+
+.audienceBadge {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-emphasis-700);
 }

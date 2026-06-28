@@ -98,7 +98,21 @@ const config = {
         copyright: `Built with Docusaurus. Not affiliated with Red Hat, Inc.`,
       },
       mermaid: {
-        theme: { light: 'neutral', dark: 'dark' },
+        theme: { light: 'base', dark: 'dark' },
+        options: {
+          themeVariables: {
+            primaryColor: '#e6f2ff',
+            primaryBorderColor: '#0066cc',
+            primaryTextColor: '#1a1a2e',
+            secondaryColor: '#fff0f0',
+            secondaryBorderColor: '#cc0000',
+            tertiaryColor: '#f0fff0',
+            tertiaryBorderColor: '#2e8b57',
+            lineColor: '#666',
+            textColor: '#333',
+            fontSize: '14px',
+          },
+        },
       },
       prism: {
         theme: require('prism-react-renderer').themes.github,
